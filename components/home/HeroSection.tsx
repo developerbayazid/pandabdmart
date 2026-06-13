@@ -58,17 +58,26 @@ export function HeroSection() {
 
     return (
         <section className="relative bg-background overflow-hidden">
+            {/* Left Arrow — viewport edge, vertically centered */}
+            <button
+                onClick={prevSlide}
+                className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-surface border border-border rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors shadow-sm"
+                aria-label="Previous slide"
+            >
+                <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Right Arrow — viewport edge, vertically centered */}
+            <button
+                onClick={nextSlide}
+                className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-surface border border-border rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors shadow-sm"
+                aria-label="Next slide"
+            >
+                <ChevronRight className="w-5 h-5" />
+            </button>
+
             <div className="max-w-[1440px] mx-auto px-8 lg:px-16">
                 <div className="relative flex items-center min-h-[500px] lg:min-h-[580px]">
-                    {/* Left Arrow */}
-                    <button
-                        onClick={prevSlide}
-                        className="absolute left-4 lg:left-8 z-20 p-2 text-text-secondary hover:text-text-primary transition-colors"
-                        aria-label="Previous slide"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-
                     {/* Slides stacked with opacity transition */}
                     <div className="relative w-full h-full flex items-center">
                         {heroSlides.map((slide, index) => {
@@ -129,15 +138,6 @@ export function HeroSection() {
                             );
                         })}
                     </div>
-
-                    {/* Right Arrow */}
-                    <button
-                        onClick={nextSlide}
-                        className="absolute right-4 lg:right-8 z-20 p-2 text-text-secondary hover:text-text-primary transition-colors"
-                        aria-label="Next slide"
-                    >
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
                 </div>
 
                 {/* Dots */}

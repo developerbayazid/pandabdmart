@@ -1,76 +1,76 @@
-# Memory — Phase 1 Foundation: Auth Complete, Ready for Database Schema
+# Memory — Phase 1 Foundation: Features 01-03 Complete
 
-Last updated: 2026-06-13 20:24
+Last updated: 2026-06-13 21:27
 
 ## What was built
 
-**Feature 02 Auth — complete end-to-end with sign out, auth guards, and redirect enforcement.**
+**Feature 03 Database Schema — fully deployed and verified on Supabase.**
+
+**Deployed to Supabase (`gufkxeuuzkyaqtavrcpr`):**
+- 21 tables, 79 RLS policies, 24 indexes, 11 updated_at triggers
+- `handle_new_user()` trigger on `auth.users` INSERT (SECURITY DEFINER, auto-creates `public.users` row, backfills existing users)
+- Realtime: `orders`, `payments`, `product_variants` added to `supabase_realtime` publication
+- `product-images` storage bucket: public read, admin/manager write via RLS on `storage.objects`
+- 4 helper functions: `set_updated_at()`, `is_admin()`, `is_admin_or_manager()`, `handle_new_user()`
 
 **New files:**
-- `lib/supabase/client.ts`, `server.ts`, `admin.ts` — three-client Supabase pattern
-- `lib/auth/get-user.ts` — server-side auth user + role fetch (resilient to missing `users` table — defaults to `customer` role until Feature 03 creates the schema)
-- `lib/auth/require-auth.ts` — server guard, redirects to `/signin` if unauthenticated
-- `lib/auth/require-role.ts` — server guard, redirects to `/` if wrong role
-- `proxy.ts` — Next.js 16 proxy (replaces `middleware.ts`), lightweight `getSession()` check (no DB calls), redirects unauthenticated from `/account` and `/admin` paths
-- `app/(storefront)/signin/page.tsx` — sign in page with password mode and magic link mode toggle, hash fragment error detection, redirects authenticated users to `/account`
-- `app/(storefront)/register/page.tsx` — email/password sign up, redirects authenticated users
-- `app/(storefront)/forgot-password/page.tsx` — password reset, redirects authenticated users
-- `app/(storefront)/auth/callback/page.tsx` — client-side magic link callback, listens for `onAuthStateChange`
-- `app/api/auth/callback/route.ts` — OAuth + magic link callback, handles `code` (OAuth via `exchangeCodeForSession`) and `token_hash` (magic link via `verifyOtp`)
-- `app/(dashboard)/layout.tsx` + `app/(dashboard)/account/page.tsx` — customer dashboard with sidebar (Account, Orders, Wishlist, Reviews) + sign out server action
-- `app/admin/layout.tsx` + `app/admin/dashboard/page.tsx` — admin layout with role-aware sidebar (Admin sees full nav; Shop Manager sees limited nav) + sign out server action, URL resolves as `/admin/dashboard`
-- `components/auth/SignOutButton.tsx` — client sign out component
-- `components/auth/AuthNavActions.tsx` — auth-aware navbar actions (Sign In icon for guests, Account + Sign Out for authenticated)
+- `supabase/migrations/20260613150000_initial_schema.sql` — full schema (751 lines)
+- `supabase/migrations/20260613155000_storage_rls.sql` — storage bucket RLS policies
+- `supabase/config.toml` — CLI configuration
+- `lib/constants/inventory.ts` — `STOCK_RESERVATION_MINUTES = 20`, `LOW_STOCK_THRESHOLD = 5`
+- `lib/constants/order.ts` — `ORDER_STATUSES` tuple + `OrderStatus` type
+- `lib/constants/roles.ts` — `ROLES` tuple + `Role` type
+- `lib/constants/pagination.ts` — `PRODUCTS_PER_PAGE = 20`, `ORDERS_PER_PAGE = 20`
+- `scripts/apply-migration.js` — pg-based migration runner (uses pooler connection)
 
-**Modified files:**
-- `components/layout/Navbar.tsx` — replaced static `/signin` link with `<AuthNavActions />`
-- `.env.local` — renamed `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to `NEXT_PUBLIC_SUPABASE_ANON_KEY`, added `SUPABASE_SERVICE_ROLE_KEY`
-- `package.json` — added `@supabase/ssr` and `@supabase/supabase-js`
+**Prior features (01-02 recap):**
+- Feature 01: Full homepage with all 10 sections (Navbar, Hero, FeaturedProduct, ProductCards, TrendingProducts, CollectionGrid, FestiveBanner, RecentProducts, LatestNews, Footer)
+- Feature 02: Auth — email/password + magic link, `proxy.ts`, signin/register/forgot-password pages, auth callback handlers, dashboard + admin layouts, role-aware nav, auth guards
 
 ## Decisions made
 
-- **No OAuth providers** — Google and GitHub OAuth buttons removed from signin page. Purely email/password + magic link auth. OAuth can be re-added later if needed.
-- **Email confirmation disabled** in Supabase for development (avoids free-tier rate limit of 3 emails/hour). Must be re-enabled + custom SMTP configured before production.
-- **`proxy.ts` uses `getSession()`** (local cookie check, no server round-trip) — full `getUser()` validation happens in layout.tsx for protected routes.
-- **Sign out in layouts** uses server actions (`form action={signOut}`) since layouts are server components.
-- **Auth redirects** — signed-in users hitting `/signin`, `/register`, `/forgot-password` get `router.replace()`'d to `/account`. Proxy handles unauthenticated users on protected routes.
-- **Admin layout** lives at `app/admin/` (not `app/(admin)/`) — the route group was causing URLs like `/dashboard` instead of `/admin/dashboard`.
+- **No OAuth providers** — Google/GitHub removed. Email/password + magic link only.
+- **Email confirmation disabled** in Supabase for dev (free-tier limit). Must re-enable before production.
+- **`proxy.ts` uses `getSession()`** — lightweight cookie check, no DB round-trip. Full role checks in layouts.
+- **Admin layout at `app/admin/`** — not a route group, so URLs resolve as `/admin/dashboard`.
+- **Single migration** for all 21 tables — interdependent schema, must exist atomically.
+- **Pooler connection** — `aws-1-ap-southeast-1.pooler.supabase.com:6543` (Supavisor transaction mode). Note: `aws-1` not `aws-0`.
+- **Explicit triggers** — named triggers per table instead of dynamic loop (pg_trigger.objid doesn't exist on this PG version).
 
 ## Problems solved
 
-- **`useSearchParams()` hydration error** — Next.js 16 requires `useSearchParams()` to be wrapped in `<Suspense>`. Fixed by splitting signin page into `<SignInForm>` (inner, uses `useSearchParams`) and `<SignInPage>` (wrapper with `<Suspense>`). Same fix applied to `auth/callback` page.
-- **Hash fragment error display** — Supabase auth errors arrive as URL hash (`#error=...` or `#error_description=...`). Signin page reads hash in `useEffect` and displays decoded error to user.
-- **OAuth `unexpected_failure`** — Google OAuth code exchange failed because Google Cloud Console redirect URI wasn't configured. Explanation provided, but OAuth was removed anyway.
-- **Email rate limit** — Supabase free tier limits auth emails to 3/hour. Fixed by disabling email confirmation in Supabase dashboard for dev.
-- **Admin route URL** — `(admin)` route group stripped `/admin` from URL paths (made `/dashboard` instead of `/admin/dashboard`). Fixed by moving to `app/admin/` without route group.
+- **IPv6-only DB** — Supabase database hostname only has AAAA record. Solved via Supavisor pooler (IPv4).
+- **Wrong pooler host prefix** — `aws-0` didn't work, correct is `aws-1` for this project.
+- **pg_trigger.objid column missing** — PostgreSQL 15+ changed system catalog. Replaced DO loop with 11 named CREATE TRIGGER statements.
+- **HeroSection arrow overlap** — arrows moved to viewport edges with z-30, circular background.
+- **useSearchParams() hydration** — wrapped in Suspense boundaries.
+- **Admin route URL** — moved from `(admin)` route group to `app/admin/` to preserve `/admin/dashboard` URLs.
 
 ## Current state
 
-- **Phase 1 — Foundation:** Features 01 (Homepage) and 02 (Auth) complete.
-- **Next: 03 Database Schema** — all Supabase tables, RLS policies, storage buckets, and Supabase Realtime publication.
-- `users` table does NOT exist yet — `get-user.ts` handles this gracefully.
-- `app/page.tsx` still renders all homepage sections directly (no route group).
-- No `shadcn/ui` installed — all auth forms use custom monochrome token system.
-- Build passes clean: TypeScript, ESLint, and `next build` all green.
+- **Phase 1 — Foundation:** 01 Homepage, 02 Auth, 03 Database Schema — all complete and verified.
+- **Next: 04 Base Layouts & Shared UI**
+- TypeScript + ESLint + next build all pass clean.
+- All Tailwind classes use CSS variables from `globals.css` `@theme` block — no raw hex or Tailwind color classes.
+- No `shadcn/ui` installed — all forms use custom monochrome token system.
 - Routes: `/`, `/signin`, `/register`, `/forgot-password`, `/auth/callback`, `/account`, `/admin/dashboard`, `/api/auth/callback`.
 
 ## Next session starts with
 
-**Feature 03 — Database Schema.** Create Supabase migration with all tables in dependency order:
+**Feature 04 — Base Layouts & Shared UI** (see `context/build-plan.md`):
 
-1. `users`, `categories`, `brands`, `attributes`, `shipping_zones`, `coupons`
-2. `products`, `attribute_values`
-3. `product_variants`
-4. `variant_images`, `variant_attribute_values`, `carts`, `wishlists`, `reviews`
-5. `cart_items`
-6. `orders`
-7. `order_items`, `payments`, `shipping_addresses`, `order_coupons`
-8. `audit_logs`
-
-Plus: RLS policies on all tables, Supabase Storage bucket for product/variant images, indexes, and **Supabase Realtime** enabled on `orders`, `payments`, `product_variants`. The database trigger on `auth.users` insert → auto-create `users` row is also part of 03.
+1. (storefront) layout — navbar + footer wrapper
+2. (dashboard) layout — sidebar (Account, Orders, Wishlist, Reviews) + topbar
+3. (admin) layout — sidebar with role-aware rendering (Admin full, Shop Manager restricted)
+4. Shared UI components: Button, Input, Select, Modal, Toast, Badge, Card, Table, Pagination, Skeleton/Loading
+5. Root loading.tsx, error.tsx, not-found.tsx
 
 ## Open questions
 
-- Whether to use Supabase CLI migrations (`npx supabase migration new`) or run SQL directly via the dashboard.
-- `SUPABASE_SERVICE_ROLE_KEY` is in `.env.local` — verify it still works before Feature 03.
-- Email confirmation must be re-enabled + custom SMTP (Resend or other) before production use.
+- Whether to install `shadcn/ui` for Feature 04 or build all primitives with the monochrome token system.
+
+## Pooler connection string
+
+```
+postgresql://postgres.gufkxeuuzkyaqtavrcpr:{password}@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres
+```

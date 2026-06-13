@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { AppProviders } from "@/components/providers/AppProviders";
 
 const generalSans = localFont({
     src: [
@@ -29,12 +29,6 @@ const generalSans = localFont({
     variable: "--font-sans",
 });
 
-const playfair = Playfair_Display({
-    subsets: ["latin"],
-    variable: "--font-serif",
-    weight: ["400", "500", "600", "700"],
-});
-
 export const metadata: Metadata = {
     title: "PandaBD Mart",
     description: "Your trusted online store in Bangladesh",
@@ -48,9 +42,11 @@ export default function RootLayout({
     return (
         <html
             lang="en"
-            className={`${generalSans.variable} ${playfair.variable} h-full antialiased`}
+            className={`${generalSans.variable} h-full antialiased`}
         >
-            <body className="min-h-full flex flex-col">{children}</body>
+            <body className="min-h-full flex flex-col">
+                <AppProviders>{children}</AppProviders>
+            </body>
         </html>
     );
 }

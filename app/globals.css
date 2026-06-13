@@ -54,6 +54,9 @@
     --radius-lg: 12px;
     --radius-xl: 16px;
     --radius-full: 9999px;
+
+    /* Serif font fallback */
+    --font-serif: 'Georgia', 'Times New Roman', serif;
 }
 
 body {

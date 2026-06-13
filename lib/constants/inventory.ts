@@ -1,0 +1,2 @@
+export const STOCK_RESERVATION_MINUTES = 20;
+export const LOW_STOCK_THRESHOLD = 5;

@@ -1,0 +1,21 @@
+project_id = "gufkxeuuzkyaqtavrcpr"
+
+[db]
+port = 5432
+schema = "public"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "auth", "storage"]
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+
+[storage]
+enabled = true
+
+[realtime]
+enabled = true

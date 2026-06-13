@@ -145,7 +145,69 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 ### Storefront — Shop & Category
 
-<!-- ProductCard, FilterSidebar, SortDropdown, ProductGrid, Pagination, CategoryBanner, Breadcrumb -->
+#### ShopPage
+- **File:** `app/(storefront)/shop/page.tsx`
+- **Classes:**
+  - Breadcrumb: `text-[13px] text-text-secondary` with active `text-text-primary font-medium`
+  - Toolbar: `flex items-center justify-between mb-6`
+  - Sort select: `bg-surface border border-border rounded-md px-3 py-2 pr-8 text-[13px] text-text-primary`
+  - Product count: `text-[13px] text-text-secondary`
+  - Mobile filter button: `lg:hidden flex items-center gap-2 px-3 py-2 text-[13px] font-medium border border-border rounded-md text-text-secondary hover:bg-surface-secondary`
+  - Main layout: `flex gap-8` with sidebar `w-[260px] shrink-0` and grid `flex-1 min-w-0`
+- **Props:** none (internal state: filters, pagination, sort)
+- **Behavior:** Client Component with full filtering logic (category, color, price, tags, stock), sorting, pagination. Mobile filter drawer. Empty state with icon + CTA.
+
+#### ShopBanner
+- **File:** `components/shop/ShopBanner.tsx`
+- **Classes:**
+  - Container: `bg-surface-secondary rounded-2xl overflow-hidden`
+  - Label: `text-[12px] text-text-secondary uppercase tracking-wider font-medium`
+  - Title: `font-[family-name:var(--font-serif)] text-[28px] lg:text-[36px] font-normal leading-[1.3] text-text-primary`
+  - Link: `text-[13px] text-text-primary underline underline-offset-4 font-medium hover:text-text-secondary`
+- **Props:** none
+- **Behavior:** Promotional banner with text left, image right (hidden on mobile). Same pattern as FestiveBanner.
+
+#### ShopProductCard
+- **File:** `components/shop/ShopProductCard.tsx`
+- **Classes:**
+  - Card image: `w-full h-[220px] lg:h-[280px] bg-surface-secondary rounded-lg overflow-hidden group-hover:scale-105 transition-transform duration-300`
+  - Category: `text-[11px] text-text-muted uppercase tracking-wider`
+  - Name: `text-[13px] font-medium text-text-primary leading-snug line-clamp-2`
+  - Price: `text-[13px] font-semibold text-text-primary`
+  - Out of Stock overlay: `absolute inset-0 bg-surface/80 flex items-center justify-center` with badge `bg-error-light text-error-foreground text-xs font-medium px-3 py-1 rounded-full`
+  - Add To Cart button: `mt-3 border border-text-primary text-text-primary px-5 py-2 text-[12px] font-medium hover:bg-surface-inverse hover:text-text-inverse transition-colors rounded-md` (shown only when in stock)
+- **Props:** `product: ShopProduct`
+- **Behavior:** Follows homepage ProductCards pattern exactly. Add to Cart button shown only when in stock. Out of stock badge overlay on image.
+
+#### FilterSidebar
+- **File:** `components/shop/FilterSidebar.tsx`
+- **Classes:**
+  - Section heading: `text-[16px] font-semibold text-text-primary mb-4 pb-2 border-b border-border`
+  - Category item: `text-[14px] font-medium text-text-secondary hover:text-text-primary` active `text-text-primary`
+  - Price range: `relative h-1 bg-border rounded-full` with track `absolute h-1 bg-text-primary rounded-full`
+  - Price labels: `text-[13px] text-text-primary font-medium`
+  - Color dot: `w-3 h-3 rounded-full border` selected `border-text-primary ring-1 ring-text-primary ring-offset-1`
+  - Tag pill: `px-3 py-1 text-[12px] font-medium rounded-md border` selected `bg-surface-inverse text-text-inverse border-surface-inverse` unselected `bg-surface text-text-secondary border-border hover:bg-surface-secondary`
+  - Stock checkbox: `w-4 h-4 rounded border-border text-text-primary focus:ring-text-primary`
+- **Props:** `selectedCategories`, `onCategoryToggle`, `priceRange`, `onPriceChange`, `selectedColors`, `onColorToggle`, `selectedTags`, `onTagToggle`, `inStockOnly`, `onInStockToggle`
+- **Behavior:** Stateless filter UI. All interactions via callbacks. Sections: Category, Price, Color, Availability, Product Tags.
+
+#### ActiveFilters
+- **File:** `components/shop/ActiveFilters.tsx`
+- **Classes:**
+  - Chip: `inline-flex items-center gap-1.5 px-3 py-1 text-[12px] font-medium bg-surface-secondary text-text-secondary border border-border rounded-full`
+  - Remove button: `hover:text-text-primary transition-colors`
+  - Clear all: `text-[12px] font-medium text-text-secondary underline underline-offset-2 hover:text-text-primary`
+- **Props:** `filters: ActiveFilter[]`, `onRemove`, `onClearAll`
+- **Behavior:** Renders removable filter chips. Hidden when no filters active. Clear All link resets all filters.
+
+#### Pagination (compact variant)
+- **File:** `components/ui/pagination.tsx`
+- **Classes:**
+  - Compact page: `w-8 h-8 text-[13px] font-medium rounded-md transition-colors flex items-center justify-center` active `bg-surface-inverse text-text-inverse` inactive `border border-border text-text-secondary hover:bg-surface-secondary`
+  - Compact next: `w-8 h-8 flex items-center justify-center text-[13px] font-medium border border-border rounded-md text-text-secondary hover:bg-surface-secondary disabled:opacity-50`
+- **Props:** `variant?: 'default' | 'compact'`
+- **Behavior:** Compact variant shows only page numbers + next arrow (no "Previous" text), matching shop design. Default variant unchanged.
 
 ### Storefront — Auth
 
@@ -237,6 +299,110 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 <!-- CouponsTable, ShippingZonesTable, UsersTable, AuditLogTable -->
 
+### Shared UI Primitives
+
+#### Button
+- **File:** `components/ui/button.tsx`
+- **Classes:**
+  - Primary: `bg-surface-inverse text-text-inverse hover:bg-surface-inverse-hover disabled:opacity-50`
+  - Secondary: `bg-surface border border-border text-text-primary hover:bg-surface-secondary disabled:opacity-50`
+  - Destructive: `bg-surface border border-border text-error hover:bg-error-light disabled:opacity-50`
+  - Ghost: `bg-transparent text-text-secondary hover:bg-surface-secondary disabled:opacity-50`
+  - Sizes: sm `px-3 py-1.5 text-xs`, md `px-4 py-2 text-sm`, lg `px-6 py-3 text-sm`
+  - Shell: `rounded-md font-medium transition-colors inline-flex items-center justify-center gap-2`
+- **Props:** `variant?: 'primary' | 'secondary' | 'destructive' | 'ghost'`, `size?: 'sm' | 'md' | 'lg'`
+- **Behavior:** Disabled state handled via `disabled:opacity-50`. All variants share the same border-radius and padding scale.
+
+#### Input
+- **File:** `components/ui/input.tsx`
+- **Classes:** `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary disabled:opacity-50 disabled:cursor-not-allowed`
+- **Props:** standard HTML input props
+- **Behavior:** Focus ring uses `text-primary` (black) per monochrome philosophy. No floating labels.
+
+#### Select
+- **File:** `components/ui/select.tsx`
+- **Classes:**
+  - Select: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Chevron: `absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary`
+  - Label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Error: `border-error focus:ring-error focus:border-error` + `mt-1 text-xs text-error`
+- **Props:** `label?: string`, `error?: string`, standard select props
+- **Behavior:** Custom chevron icon overlay. Error state adds red border and message.
+
+#### Badge
+- **File:** `components/ui/badge.tsx`
+- **Classes:**
+  - Neutral: `bg-surface-secondary text-text-secondary border border-border`
+  - Success: `bg-success-light text-success-foreground`
+  - Warning: `bg-warning-light text-warning-foreground`
+  - Error: `bg-error-light text-error-foreground`
+  - Info: `bg-info-light text-info-foreground`
+  - Primary: `bg-surface-inverse text-text-inverse`
+  - Shell: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium`
+- **Props:** `variant?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'primary'`
+- **Behavior:** Pill-shaped by default. Used for status badges, tags, and labels.
+
+#### Card
+- **File:** `components/ui/card.tsx`
+- **Classes:**
+  - Root: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Title: `text-base font-semibold text-text-primary leading-6`
+  - Description: `text-sm text-text-secondary mt-1`
+  - Footer: `mt-4 flex items-center gap-3`
+- **Props:** `children`, plus subcomponents `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`
+- **Behavior:** No hover states — static container. Used for stat cards, form containers, and admin panels.
+
+#### Skeleton
+- **File:** `components/ui/skeleton.tsx`
+- **Classes:** `animate-pulse bg-surface-secondary rounded-md`
+- **Props:** standard div props, plus `SkeletonText` (`lines?: number`) and `SkeletonCard` presets
+- **Behavior:** Used for loading states across product grids, tables, and dashboards.
+
+#### Table
+- **File:** `components/ui/table.tsx`
+- **Classes:**
+  - Wrapper: `w-full overflow-x-auto`
+  - Table: `w-full text-sm text-left`
+  - Header: `bg-surface-tertiary`
+  - Head cell: `px-4 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary`
+  - Body: `divide-y divide-border`
+  - Row: `hover:bg-surface-secondary transition-colors`
+  - Cell: `px-4 py-3 text-sm text-text-primary`
+- **Props:** Subcomponents `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`
+- **Behavior:** No alternating row colors. Hover state only. Used for admin tables and order history.
+
+#### Pagination
+- **File:** `components/ui/pagination.tsx`
+- **Classes:**
+  - Prev/Next: `px-3 py-1.5 text-[13px] font-medium border border-border rounded-md text-text-secondary hover:bg-surface-secondary disabled:opacity-50`
+  - Page active: `w-8 h-8 text-[13px] font-medium rounded-md bg-surface-inverse text-text-inverse`
+  - Page inactive: `w-8 h-8 text-[13px] font-medium rounded-md border border-border text-text-secondary hover:bg-surface-secondary`
+- **Props:** `currentPage: number`, `totalPages: number`, `onPageChange: (page: number) => void`
+- **Behavior:** Ellipsis for large page counts. Disabled Previous/Next at boundaries.
+
+#### Modal
+- **File:** `components/ui/modal.tsx`
+- **Classes:**
+  - Overlay: `fixed inset-0 z-50 flex items-center justify-center bg-overlay/50 p-4`
+  - Content: `bg-surface border border-border rounded-2xl shadow-lg w-full max-w-lg animate-in fade-in zoom-in-95 duration-200`
+  - Header: `flex items-center justify-between px-6 py-4 border-b border-border`
+  - Title: `text-base font-semibold text-text-primary`
+  - Close button: `p-1 text-text-secondary hover:text-text-primary transition-colors`
+- **Props:** `isOpen: boolean`, `onClose: () => void`, `title?: string`, `children`
+- **Behavior:** Client component. ESC key closes, click outside closes, body scroll locked. Enter/exit animation via `animate-in`.
+
+#### Toast
+- **File:** `components/ui/toast.tsx`
+- **Classes:**
+  - Container: `fixed bottom-4 right-4 z-50 flex flex-col gap-2`
+  - Toast item: `flex items-center gap-3 px-4 py-3 rounded-md border shadow-lg min-w-[300px] max-w-md animate-in slide-in-from-right-4 fade-in duration-300`
+  - Success: `bg-success-light text-success-foreground border-success`
+  - Error: `bg-error-light text-error-foreground border-error`
+  - Warning: `bg-warning-light text-warning-foreground border-warning`
+  - Info: `bg-info-light text-info-foreground border-info`
+- **Props:** `ToastProvider` wrapper + `useToast()` hook (`showToast(message, type?)`)
+- **Behavior:** Auto-dismisses after 4 seconds. Manual dismiss via X button. Toast type determines border and background color. Used globally via `AppProviders` in root layout.
+
 ---
 
 ## Patterns
@@ -292,6 +458,35 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 | Footer container | `bg-text-primary text-white` | Footer |
 | Footer link | `text-[13px] text-white/70 hover:text-white transition-colors` | Footer |
 | Footer heading | `text-[14px] font-semibold text-white mb-4` | Footer |
+
+## Patterns — Shared UI Primitives (Imprinted 2026-06-13)
+
+| Property | Class | Used By |
+|----------|-------|---------|
+| Primary button | `bg-surface-inverse text-text-inverse rounded-md px-4 py-2 text-sm font-medium hover:bg-surface-inverse-hover disabled:opacity-50` | Button, all forms, CTAs |
+| Secondary button | `bg-surface border border-border text-text-primary rounded-md px-4 py-2 text-sm font-medium hover:bg-surface-secondary disabled:opacity-50` | Button, OAuth buttons, Cancel actions |
+| Destructive button | `bg-surface border border-border text-error rounded-md px-4 py-2 text-sm font-medium hover:bg-error-light disabled:opacity-50` | Button, Reject, Cancel Order, Delete |
+| Ghost button | `bg-transparent text-text-secondary hover:bg-surface-secondary rounded-md` | Button, icon-only actions |
+| Form input | `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary` | Input, Select, auth forms, checkout |
+| Form label | `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5` | Input, Select, all forms |
+| Card shell | `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]` | Card, stat cards, modal content |
+| Status badge (success) | `bg-success-light text-success-foreground` | Badge, order status, stock status |
+| Status badge (warning) | `bg-warning-light text-warning-foreground` | Badge, pending status, low stock |
+| Status badge (error) | `bg-error-light text-error-foreground` | Badge, cancelled, out of stock, refunded |
+| Status badge (info) | `bg-info-light text-info-foreground` | Badge, processing, shipped |
+| Table header | `bg-surface-tertiary px-4 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary` | Table, admin tables, order history |
+| Table row | `hover:bg-surface-secondary transition-colors px-4 py-3 text-sm text-text-primary` | Table, admin tables |
+| Skeleton | `animate-pulse bg-surface-secondary rounded-md` | Skeleton, loading states |
+| Modal overlay | `fixed inset-0 z-50 bg-overlay/50 flex items-center justify-center` | Modal |
+| Toast container | `fixed bottom-4 right-4 z-50 flex flex-col gap-2` | Toast |
+
+**Pattern notes:**
+- All form inputs share the same focus ring (`ring-text-primary`) and border style — never colored focus rings
+- Button sizes are consistent: sm (compact), md (default), lg (hero/CTA)
+- Card border-radius is always `rounded-2xl` (16px) unless inside a modal where it matches `rounded-2xl` as well
+- Status badge colors are canonical — never invent new mappings per-component
+- Table rows never use alternating colors — white-only with `hover:bg-surface-secondary`
+- All interactive elements have `disabled:opacity-50` for disabled states
 
 Likely early candidates for shared patterns in this project:
 
