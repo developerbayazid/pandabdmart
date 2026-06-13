@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 1 — Foundation
-**Last completed:** 01 Homepage (Storefront)
-**In progress:** 02 Auth
+**Last completed:** 02 Auth
+**In progress:** 03 Database Schema
 
 ---
 
@@ -17,7 +17,7 @@ Update this file after every completed feature. Any AI agent reading this should
 ### Phase 1 — Foundation
 
 - [x] 01 Homepage (Storefront)
-- [ ] 02 Auth
+- [x] 02 Auth
 - [ ] 03 Database Schema
 - [ ] 04 Base Layouts & Shared UI
 
@@ -64,6 +64,7 @@ Update this file after every completed feature. Any AI agent reading this should
 
 - **01 Homepage complete** — all sections built: Navbar, Hero carousel (autoplay + smooth transitions), Featured Product, Product Cards, Trending Products (tab filtering with smooth animations), Collection Grid, Festive Banner, Recent Products (12 items with pagination), Latest News, Footer.
 - All Tailwind classes use CSS variables from `globals.css` `@theme` block. No raw Tailwind colors or hardcoded hex values in components.
+- **02 Auth complete** — Supabase Auth setup: `lib/supabase/client.ts`, `server.ts`, `admin.ts` (three-client pattern); `proxy.ts` at project root with lightweight session check (`getSession()`, no DB calls); `lib/auth/get-user.ts` (server-side user + role fetch, resilient to missing users table), `require-auth.ts`, `require-role.ts`; auth pages at `/signin` (password + magic link toggle, Google/GitHub OAuth), `/register`, `/forgot-password`; client-side magic link callback page at `/auth/callback`; OAuth API callback at `app/api/auth/callback/route.ts` (handles both `code` and `token_hash`); `(dashboard)` route group layout with sidebar (Account, Orders, Wishlist, Reviews) + Account page; `(admin)` route group layout with sidebar (role-aware: Admin sees Customers/Coupons/Shipping/Settings/Audit Logs; Shop Manager sees limited nav) + Admin Dashboard placeholder. `users` table query in `get-user.ts` handles missing table gracefully (returns default `customer` role) until Feature 03 creates the schema.
 - Database schema (03) must be completed before any feature in Phase 2 onward — all subsequent features depend on tables existing with correct RLS policies.
 - Supabase Realtime must be enabled on `orders`, `payments`, and `product_variants` as part of 03 — required by features 09, 15, 16, 17, 20.
-- `proxy.ts` (not `middleware.ts`) handles route-group session checks per architecture.md — created as part of 02.
+- `proxy.ts` (not `middleware.ts`) handles route-group session checks per architecture.md — created as part of 02. Admin layout lives at `app/admin/layout.tsx` (not inside a route group) so URLs resolve as `/admin/dashboard`, `/admin/products`, etc.

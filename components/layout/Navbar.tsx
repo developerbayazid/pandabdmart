@@ -76,7 +76,7 @@ export function Navbar() {
                             </span>
                         </Link>
                         <Link
-                            href="/auth/login"
+                            href="/signin"
                             className="p-2 text-text-secondary hover:text-text-primary transition-colors"
                             aria-label="Account"
                         >

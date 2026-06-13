@@ -147,6 +147,44 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 <!-- ProductCard, FilterSidebar, SortDropdown, ProductGrid, Pagination, CategoryBanner, Breadcrumb -->
 
+### Storefront — Auth
+
+#### SignInPage
+- **File:** `app/(storefront)/signin/page.tsx`
+- **Classes:**
+  - Container: `min-h-screen flex items-center justify-center bg-background px-4`
+  - Card: `w-full max-w-md bg-surface border border-border rounded-2xl p-8`
+  - Title: `font-[family-name:var(--font-serif)] text-[28px] font-normal text-text-primary text-center`
+  - Subtitle: `text-sm text-text-secondary text-center mb-8`
+  - Error: `bg-error-light text-error-foreground text-sm p-3 rounded-md`
+  - Success message: `bg-success-light text-success-foreground text-sm p-3 rounded-md`
+  - Input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Primary button: `w-full bg-surface-inverse text-text-inverse rounded-md px-4 py-2 text-sm font-medium hover:bg-surface-inverse-hover disabled:opacity-50 transition-colors`
+  - OAuth button: `w-full bg-surface border border-border rounded-md px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary disabled:opacity-50 transition-colors flex items-center justify-center gap-2`
+  - Divider: `flex-1 h-px bg-border` with `text-xs text-text-muted`
+  - Footer link: `text-sm text-text-secondary` with `text-text-primary underline underline-offset-2 font-medium hover:text-text-secondary`
+- **Props:** none (internal state: mode, email, password, error, loading)
+- **Behavior:** Two modes — password sign-in (email + password + OAuth buttons) and magic link (email only + send button). Toggle via inline links. Google OAuth, GitHub OAuth, magic link to `/auth/callback`.
+
+#### RegisterPage
+- **File:** `app/(storefront)/register/page.tsx`
+- **Classes:** Same card, input, button, and error patterns as SignInPage
+- **Props:** none
+- **Behavior:** Name + email + password + confirm password form. Validates password length (min 6) and match.
+
+#### ForgotPasswordPage
+- **File:** `app/(storefront)/forgot-password/page.tsx`
+- **Classes:** Same card, input, button, and message patterns as SignInPage
+- **Props:** none
+- **Behavior:** Email form to send password reset link. Shows success message on send.
+
+#### AuthCallbackPage
+- **File:** `app/(storefront)/auth/callback/page.tsx`
+- **Classes:** `min-h-screen flex items-center justify-center bg-background` with `text-sm text-text-secondary`
+- **Props:** none
+- **Behavior:** Client component listening for `onAuthStateChange` from Supabase. Reads `redirect` query param. Landing page for magic link emails.
+
 ### Storefront — Product Detail
 
 <!-- ImageGallery, VariantSelector, StockBadge, ReviewsList, ReviewForm, RelatedProducts -->
@@ -162,6 +200,26 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 ### Customer Dashboard
 
 <!-- ProfileForm, AddressBook, OrderHistoryTable, WishlistGrid, ReviewsList -->
+
+#### DashboardLayout
+- **File:** `app/(dashboard)/layout.tsx`
+- **Classes:**
+  - Page: `min-h-screen bg-background`
+  - Header: `bg-surface border-b border-border h-16 flex items-center justify-between px-6`
+  - Sidebar: `w-60 min-h-[calc(100vh-64px)] bg-surface border-r border-border p-6`
+  - Sidebar link: `block px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-secondary rounded-md transition-colors`
+  - Main content: `flex-1 p-8`
+- **Props:** `children: React.ReactNode`
+- **Behavior:** Server Component with `getUser()` auth check. Sidebar with Account, Orders, Wishlist, Reviews links.
+
+### Admin — Layout
+
+#### AdminLayout
+- **File:** `app/admin/layout.tsx`
+- **Classes:** Same header/sidebar/layout pattern as DashboardLayout
+- **Additional:** Role badge `bg-surface-secondary text-text-secondary text-xs font-medium px-2 py-1 rounded-full capitalize`
+- **Props:** `children: React.ReactNode`
+- **Behavior:** Server Component with `getUser()` role check (admin/shop_manager). Sidebar adapts: Admin sees full nav (Dashboard, Products, Categories, Brands, Orders, Payments, Customers, Coupons, Shipping, Settings, Audit Logs); Shop Manager sees restricted nav (no Customers, Coupons, Shipping, Settings, Audit Logs).
 
 ### Admin — Dashboard
 
@@ -200,6 +258,32 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 - Serif font (Playfair Display) used for all section headings and the hero title to match the design aesthetic
 - Product cards share identical markup across ProductCards and TrendingProducts — extract into a ProductCard component if reused again
 - Images use `object-cover` for cards and `object-contain` for hero/featured/festive sections
+
+## Patterns — Auth Forms (Imprinted 2026-06-13)
+
+| Property | Class | Used By |
+|----------|-------|---------|
+| Auth card | `w-full max-w-md bg-surface border border-border rounded-2xl p-8` | SignIn, Register, ForgotPassword |
+| Auth title (serif) | `font-[family-name:var(--font-serif)] text-[28px] font-normal text-text-primary text-center` | SignIn, Register, ForgotPassword |
+| Auth subtitle | `text-sm text-text-secondary text-center mb-8` | SignIn, Register, ForgotPassword |
+| Form input | `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary` | SignIn, Register, ForgotPassword |
+| Form label | `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5` | SignIn, Register, ForgotPassword |
+| Auth primary button | `w-full bg-surface-inverse text-text-inverse rounded-md px-4 py-2 text-sm font-medium hover:bg-surface-inverse-hover disabled:opacity-50 transition-colors` | SignIn, Register, ForgotPassword |
+| OAuth/secondary button | `w-full bg-surface border border-border rounded-md px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary disabled:opacity-50 transition-colors flex items-center justify-center gap-2` | SignIn (Google, GitHub, magic link) |
+| Auth error box | `bg-error-light text-error-foreground text-sm p-3 rounded-md` | SignIn, Register, ForgotPassword |
+| Auth success message | `bg-success-light text-success-foreground text-sm p-3 rounded-md` | SignIn, ForgotPassword |
+| Auth footer link | `text-sm text-text-secondary` with inner link `text-text-primary underline underline-offset-2 font-medium hover:text-text-secondary` | SignIn, Register, ForgotPassword |
+
+## Patterns — Dashboard/Admin Layout (Imprinted 2026-06-13)
+
+| Property | Class | Used By |
+|----------|-------|---------|
+| Layout container | `min-h-screen bg-background` | DashboardLayout, AdminLayout |
+| Top header | `bg-surface border-b border-border h-16 flex items-center justify-between px-6` | DashboardLayout, AdminLayout |
+| Sidebar | `w-60 min-h-[calc(100vh-64px)] bg-surface border-r border-border p-6` | DashboardLayout, AdminLayout |
+| Sidebar link | `block px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-secondary rounded-md transition-colors` | DashboardLayout, AdminLayout |
+| Main content | `flex-1 p-8` | DashboardLayout, AdminLayout |
+| Role badge | `bg-surface-secondary text-text-secondary text-xs font-medium px-2 py-1 rounded-full capitalize` | AdminLayout (admin role badge) |
 
 ## Patterns — Footer (Imprinted 2026-06-13)
 
