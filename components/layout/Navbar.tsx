@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, ShoppingCart, User } from 'lucide-react';
+import { Search, ShoppingCart } from 'lucide-react';
+import { AuthNavActions } from '@/components/auth/AuthNavActions';
 
 const navLinks = [
     { label: 'HOME', href: '/' },
@@ -75,13 +76,7 @@ export function Navbar() {
                                 0
                             </span>
                         </Link>
-                        <Link
-                            href="/signin"
-                            className="p-2 text-text-secondary hover:text-text-primary transition-colors"
-                            aria-label="Account"
-                        >
-                            <User className="w-5 h-5" />
-                        </Link>
+                        <AuthNavActions />
                     </div>
                 </div>
             </nav>

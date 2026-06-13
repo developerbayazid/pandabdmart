@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 export default function ForgotPasswordPage() {
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
@@ -12,6 +14,15 @@ export default function ForgotPasswordPage() {
     const [sent, setSent] = useState(false);
 
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getSession().then(({ data }) => {
+            if (data.session) {
+                router.replace('/account');
+            }
+        });
+    }, [router]);
 
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();

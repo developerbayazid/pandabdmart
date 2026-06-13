@@ -1,75 +1,76 @@
-# Memory — Phase 1 Foundation: Homepage Complete
+# Memory — Phase 1 Foundation: Auth Complete, Ready for Database Schema
 
-Last updated: 2026-06-13 18:27
+Last updated: 2026-06-13 20:24
 
 ## What was built
 
-Complete storefront homepage UI (Phase 1 — Feature 01). All components created with mock data and no external data dependencies yet.
+**Feature 02 Auth — complete end-to-end with sign out, auth guards, and redirect enforcement.**
 
-**Files created:**
-- `app/layout.tsx` — Root layout with General Sans local font (weights 400/500/600/700) + Playfair Display serif variable for headings
-- `app/page.tsx` — Homepage composition importing all 9 section components
-- `app/globals.css` — Tailwind v4 `@theme` token block with full monochrome palette + 4 functional colors (success, warning, info, error)
-- `app/fonts/GeneralSans-*.woff2` — 4 font files
-- `components/layout/Navbar.tsx` — Announcement bar + main nav with logo, links, cart badge
-- `components/layout/Footer.tsx` — 4-column footer with links, copyright
-- `components/home/HeroSection.tsx` — 3-slide carousel with prev/next arrows, dot navigation, autoplay
-- `components/home/FeaturedProduct.tsx` — Static featured product with thumbnails
-- `components/home/ProductCards.tsx` — 3-column grid with hover zoom
-- `components/home/TrendingProducts.tsx` — 4-column grid with category tab filtering + fade/slide animation
-- `components/home/CollectionGrid.tsx` — 5-image masonry grid (1 tall left, 2x2 right)
-- `components/home/FestiveBanner.tsx` — Promo banner text-left image-right
-- `components/home/RecentProducts.tsx` — 12 products, 8 per page, numbered pagination
-- `components/home/LatestNews.tsx` — 3-column blog card grid
+**New files:**
+- `lib/supabase/client.ts`, `server.ts`, `admin.ts` — three-client Supabase pattern
+- `lib/auth/get-user.ts` — server-side auth user + role fetch (resilient to missing `users` table — defaults to `customer` role until Feature 03 creates the schema)
+- `lib/auth/require-auth.ts` — server guard, redirects to `/signin` if unauthenticated
+- `lib/auth/require-role.ts` — server guard, redirects to `/` if wrong role
+- `proxy.ts` — Next.js 16 proxy (replaces `middleware.ts`), lightweight `getSession()` check (no DB calls), redirects unauthenticated from `/account` and `/admin` paths
+- `app/(storefront)/signin/page.tsx` — sign in page with password mode and magic link mode toggle, hash fragment error detection, redirects authenticated users to `/account`
+- `app/(storefront)/register/page.tsx` — email/password sign up, redirects authenticated users
+- `app/(storefront)/forgot-password/page.tsx` — password reset, redirects authenticated users
+- `app/(storefront)/auth/callback/page.tsx` — client-side magic link callback, listens for `onAuthStateChange`
+- `app/api/auth/callback/route.ts` — OAuth + magic link callback, handles `code` (OAuth via `exchangeCodeForSession`) and `token_hash` (magic link via `verifyOtp`)
+- `app/(dashboard)/layout.tsx` + `app/(dashboard)/account/page.tsx` — customer dashboard with sidebar (Account, Orders, Wishlist, Reviews) + sign out server action
+- `app/admin/layout.tsx` + `app/admin/dashboard/page.tsx` — admin layout with role-aware sidebar (Admin sees full nav; Shop Manager sees limited nav) + sign out server action, URL resolves as `/admin/dashboard`
+- `components/auth/SignOutButton.tsx` — client sign out component
+- `components/auth/AuthNavActions.tsx` — auth-aware navbar actions (Sign In icon for guests, Account + Sign Out for authenticated)
 
-**Context files created:**
-- `context/project-overview.md`, `architecture.md`, `build-plan.md`, `ui-tokens.md`, `ui-rules.md`, `ui-registry.md`, `code-standards.md`, `library-docs.md`, `progress-tracker.md`
-
-**Config files:**
-- `.kilo/skills/remember/SKILL.md` — remember skill installed
+**Modified files:**
+- `components/layout/Navbar.tsx` — replaced static `/signin` link with `<AuthNavActions />`
+- `.env.local` — renamed `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to `NEXT_PUBLIC_SUPABASE_ANON_KEY`, added `SUPABASE_SERVICE_ROLE_KEY`
+- `package.json` — added `@supabase/ssr` and `@supabase/supabase-js`
 
 ## Decisions made
 
-- **Monochrome palette only** — no brand accent color. All primary actions, nav, logo use black (`--color-surface-inverse`) with white text. Functional colors restricted to status badges/stock indicators.
-- **Tailwind v4 `@theme` block** — all tokens in `globals.css`, no `tailwind.config.ts` needed.
-- **General Sans + Playfair Display** — General Sans for all body/UI text; Playfair Display serif for all homepage section headings and hero title.
-- **CSS variables for everything** — zero hardcoded hex values in components; all colors use generated Tailwind utilities (`bg-surface`, `text-text-primary`, etc.).
-- **Mock data inside components** — all homepage sections use internal mock data arrays. No Supabase connection yet.
-- **Pattern extraction via `/imprint`** — after building homepage components, shared patterns were captured in `ui-registry.md` (card image, product name, price, CTA button, section heading styles).
-- **Next.js 16.2** — `middleware.ts` is deprecated; future auth will use `proxy.ts` (exports `proxy` function, not `middleware`).
+- **No OAuth providers** — Google and GitHub OAuth buttons removed from signin page. Purely email/password + magic link auth. OAuth can be re-added later if needed.
+- **Email confirmation disabled** in Supabase for development (avoids free-tier rate limit of 3 emails/hour). Must be re-enabled + custom SMTP configured before production.
+- **`proxy.ts` uses `getSession()`** (local cookie check, no server round-trip) — full `getUser()` validation happens in layout.tsx for protected routes.
+- **Sign out in layouts** uses server actions (`form action={signOut}`) since layouts are server components.
+- **Auth redirects** — signed-in users hitting `/signin`, `/register`, `/forgot-password` get `router.replace()`'d to `/account`. Proxy handles unauthenticated users on protected routes.
+- **Admin layout** lives at `app/admin/` (not `app/(admin)/`) — the route group was causing URLs like `/dashboard` instead of `/admin/dashboard`.
 
 ## Problems solved
 
-- **Tailwind v4 font variable syntax** — `font-[family-name:var(--font-serif)]` is the correct pattern for Next.js local font variables in Tailwind v4, not `font-serif` directly.
-- **Carousel autoplay + smooth transitions** — HeroSection uses `useEffect` interval with `requestAnimationFrame` for smooth slide transitions and proper cleanup.
-- **Tab filtering animation** — TrendingProducts uses `animationKey` state to force remount + `animate-in fade-in slide-in-from-bottom-6` for smooth grid transitions when tabs change.
-- **Font loading** — General Sans loaded via `next/font/local` with explicit weight mapping; Playfair Display loaded via `next/font/google` with subsets and weight array.
+- **`useSearchParams()` hydration error** — Next.js 16 requires `useSearchParams()` to be wrapped in `<Suspense>`. Fixed by splitting signin page into `<SignInForm>` (inner, uses `useSearchParams`) and `<SignInPage>` (wrapper with `<Suspense>`). Same fix applied to `auth/callback` page.
+- **Hash fragment error display** — Supabase auth errors arrive as URL hash (`#error=...` or `#error_description=...`). Signin page reads hash in `useEffect` and displays decoded error to user.
+- **OAuth `unexpected_failure`** — Google OAuth code exchange failed because Google Cloud Console redirect URI wasn't configured. Explanation provided, but OAuth was removed anyway.
+- **Email rate limit** — Supabase free tier limits auth emails to 3/hour. Fixed by disabling email confirmation in Supabase dashboard for dev.
+- **Admin route URL** — `(admin)` route group stripped `/admin` from URL paths (made `/dashboard` instead of `/admin/dashboard`). Fixed by moving to `app/admin/` without route group.
 
 ## Current state
 
-- **Phase 1 — Foundation:** Feature 01 (Homepage) is complete.
-- **Feature 02 (Auth) is in progress** — this is the next build target.
-- All homepage UI components are visually complete and verified. No backend or data wiring exists yet.
-- `progress-tracker.md` shows 01 complete, 02 in progress.
-- `ui-registry.md` has patterns for homepage components + footer imprinted.
-- Project structure is clean: `components/home/`, `components/layout/`, `context/` all in place.
-- `lib/` directory does not exist yet — will be created during Auth (02) and Database Schema (03).
-- `package.json` dependencies: Next.js 16.2.9, React 19.2.4, Tailwind CSS v4, lucide-react. No Supabase, Zustand, shadcn/ui, or other backend-related packages installed yet.
+- **Phase 1 — Foundation:** Features 01 (Homepage) and 02 (Auth) complete.
+- **Next: 03 Database Schema** — all Supabase tables, RLS policies, storage buckets, and Supabase Realtime publication.
+- `users` table does NOT exist yet — `get-user.ts` handles this gracefully.
+- `app/page.tsx` still renders all homepage sections directly (no route group).
+- No `shadcn/ui` installed — all auth forms use custom monochrome token system.
+- Build passes clean: TypeScript, ESLint, and `next build` all green.
+- Routes: `/`, `/signin`, `/register`, `/forgot-password`, `/auth/callback`, `/account`, `/admin/dashboard`, `/api/auth/callback`.
 
 ## Next session starts with
 
-1. **Install Supabase SDK** — `@supabase/ssr` and `@supabase/supabase-js` for the three client pattern (browser, server, admin).
-2. **Create `lib/supabase/client.ts`, `server.ts`, `admin.ts`** — following the exact patterns in `architecture.md`.
-3. **Create `proxy.ts`** — Next.js 16 session-presence check (not `middleware.ts`), redirecting unauthenticated users from `(dashboard)` and `(admin)` route groups.
-4. **Create auth pages** — `app/(storefront)/auth/login/page.tsx`, `register/page.tsx`, `forgot-password/page.tsx` with forms.
-5. **Create `lib/auth/get-user.ts`, `require-auth.ts`, `require-role.ts`** — full DB-backed role verification for dashboard and admin layouts.
-6. **Set up Supabase project** — if not already linked, create/link Supabase project and configure `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+**Feature 03 — Database Schema.** Create Supabase migration with all tables in dependency order:
 
-Start with the Supabase client files and `proxy.ts` — those are the foundation for all subsequent auth work.
+1. `users`, `categories`, `brands`, `attributes`, `shipping_zones`, `coupons`
+2. `products`, `attribute_values`
+3. `product_variants`
+4. `variant_images`, `variant_attribute_values`, `carts`, `wishlists`, `reviews`
+5. `cart_items`
+6. `orders`
+7. `order_items`, `payments`, `shipping_addresses`, `order_coupons`
+8. `audit_logs`
+
+Plus: RLS policies on all tables, Supabase Storage bucket for product/variant images, indexes, and **Supabase Realtime** enabled on `orders`, `payments`, `product_variants`. The database trigger on `auth.users` insert → auto-create `users` row is also part of 03.
 
 ## Open questions
 
-- Supabase project is not yet created/linked — need project ref and API keys for `.env.local`.
-- Whether to use shadcn/ui for auth form components or build custom following the existing monochrome token system.
-- No OAuth app credentials (Google/GitHub) yet — can be deferred until after email/password auth works end-to-end.
-- Tailwind v4 `@theme` block works for tokens, but verify if any additional shadcn/ui CSS variable setup is needed if shadcn is installed later.
+- Whether to use Supabase CLI migrations (`npx supabase migration new`) or run SQL directly via the dashboard.
+- `SUPABASE_SERVICE_ROLE_KEY` is in `.env.local` — verify it still works before Feature 03.
+- Email confirmation must be re-enabled + custom SMTP (Resend or other) before production use.

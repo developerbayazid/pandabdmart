@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/auth/get-user';
+import { createClient } from '@/lib/supabase/server';
 
 export default async function DashboardLayout({
     children,
@@ -29,6 +30,14 @@ export default async function DashboardLayout({
                     >
                         Account
                     </Link>
+                    <form action={signOut}>
+                        <button
+                            type="submit"
+                            className="text-sm text-text-secondary hover:text-text-primary"
+                        >
+                            Sign out
+                        </button>
+                    </form>
                 </div>
             </header>
             <div className="flex">
@@ -44,6 +53,13 @@ export default async function DashboardLayout({
             </div>
         </div>
     );
+}
+
+async function signOut() {
+    'use server';
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+    redirect('/signin');
 }
 
 function SidebarLink({ href, children }: { href: string; children: React.ReactNode }) {

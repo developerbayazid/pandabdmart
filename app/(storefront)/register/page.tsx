@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -14,6 +14,15 @@ export default function RegisterPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getSession().then(({ data }) => {
+            if (data.session) {
+                router.replace('/account');
+            }
+        });
+    }, [router]);
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
