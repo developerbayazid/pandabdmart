@@ -209,6 +209,41 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 - **Props:** `variant?: 'default' | 'compact'`
 - **Behavior:** Compact variant shows only page numbers + next arrow (no "Previous" text), matching shop design. Default variant unchanged.
 
+#### CategoryBreadcrumb
+- **File:** `components/category/CategoryBreadcrumb.tsx`
+- **Classes:**
+  - Nav: `flex items-center gap-2 text-[13px] text-text-secondary mb-6`
+  - Link: `hover:text-text-primary transition-colors`
+  - Active: `text-text-primary font-medium`
+- **Props:** `ancestors: { name: string; slug: string }[]`, `currentName: string`
+- **Behavior:** Renders Home > Ancestor1 > Ancestor2 > Current with ChevronRight separators. Ancestors are linked, current is plain text.
+
+#### CategoryHero
+- **File:** `components/category/CategoryHero.tsx`
+- **Classes:**
+  - Container: `bg-surface-secondary rounded-2xl overflow-hidden mb-8`
+  - Label: `text-[12px] text-text-secondary uppercase tracking-wider font-medium`
+  - Title: `font-[family-name:var(--font-serif)] text-[28px] lg:text-[36px] font-normal leading-[1.3] text-text-primary mt-2`
+  - Description: `text-[14px] text-text-secondary mt-3 max-w-lg`
+- **Props:** `name: string`
+- **Behavior:** Shows "Category" label, category name in serif heading, and a description paragraph. Same pattern as ShopBanner/FestiveBanner but focused on category name.
+
+#### CategoryPageClient
+- **File:** `components/category/CategoryPageClient.tsx`
+- **Classes:** Same layout pattern as ShopPageClient (bg-background, max-w-[1440px], sidebar w-[260px], product grid 3-col)
+- **Additional:**
+  - Subcategory cards: `bg-surface border border-border rounded-xl p-5 hover:bg-surface-secondary transition-colors`
+  - Subcategory title: `text-[14px] font-medium text-text-primary`
+  - Subcategory subtitle: `text-[12px] text-text-muted mt-1`
+- **Props:** `categoryData: CategoryPageData`, `products: ShopProduct[]`, `total: number`, `page: number`, `totalPages: number`, `filterOptions: ShopFilterOptions`, `categorySlug: string`
+- **Behavior:** Same URL-driven filter/sort/pagination as ShopPageClient. Category filter hidden from sidebar (page is already scoped to one category). Subcategories grid shown before product grid when category has children. Empty state matches shop pattern.
+
+#### CategoryPageFallback
+- **File:** `components/category/CategoryPageFallback.tsx`
+- **Classes:** Same skeleton pattern as ShopPageClientFallback (sidebar skeletons + 6 product card skeletons)
+- **Props:** none
+- **Behavior:** Suspense fallback while category page data loads.
+
 ### Storefront — Auth
 
 #### SignInPage

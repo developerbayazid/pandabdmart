@@ -1,29 +1,34 @@
 'use client';
 
-import { categories, colors, tags } from './mock-data';
+type FilterOption = {
+    slug: string;
+    name: string;
+};
 
 type FilterSidebarProps = {
+    categories: FilterOption[];
+    brands: FilterOption[];
     selectedCategories: string[];
-    onCategoryToggle: (category: string) => void;
+    onCategoryToggle: (slug: string) => void;
     priceRange: [number, number];
+    priceBounds: { min: number; max: number };
     onPriceChange: (range: [number, number]) => void;
-    selectedColors: string[];
-    onColorToggle: (color: string) => void;
-    selectedTags: string[];
-    onTagToggle: (tag: string) => void;
+    selectedBrands: string[];
+    onBrandToggle: (slug: string) => void;
     inStockOnly: boolean;
     onInStockToggle: () => void;
 };
 
 export function FilterSidebar({
+    categories,
+    brands,
     selectedCategories,
     onCategoryToggle,
     priceRange,
+    priceBounds,
     onPriceChange,
-    selectedColors,
-    onColorToggle,
-    selectedTags,
-    onTagToggle,
+    selectedBrands,
+    onBrandToggle,
     inStockOnly,
     onInStockToggle,
 }: FilterSidebarProps) {
@@ -36,16 +41,16 @@ export function FilterSidebar({
                 </h3>
                 <ul className="space-y-2.5">
                     {categories.map((category) => (
-                        <li key={category}>
+                        <li key={category.slug}>
                             <button
-                                onClick={() => onCategoryToggle(category)}
+                                onClick={() => onCategoryToggle(category.slug)}
                                 className={`text-[14px] font-medium transition-colors ${
-                                    selectedCategories.includes(category)
+                                    selectedCategories.includes(category.slug)
                                         ? 'text-text-primary'
                                         : 'text-text-secondary hover:text-text-primary'
                                 }`}
                             >
-                                {category}
+                                {category.name}
                             </button>
                         </li>
                     ))}
@@ -59,21 +64,21 @@ export function FilterSidebar({
                 </h3>
                 <div className="space-y-3">
                     <div className="flex items-center justify-between text-[13px] text-text-primary font-medium">
-                        <span>${priceRange[0]}</span>
-                        <span>${priceRange[1]}</span>
+                        <span>৳{priceRange[0]}</span>
+                        <span>৳{priceRange[1]}</span>
                     </div>
                     <div className="relative h-1 bg-border rounded-full">
                         <div
                             className="absolute h-1 bg-text-primary rounded-full"
                             style={{
-                                left: `${(priceRange[0] / 100) * 100}%`,
-                                right: `${100 - (priceRange[1] / 100) * 100}%`,
+                                left: `${((priceRange[0] - priceBounds.min) / (priceBounds.max - priceBounds.min || 1)) * 100}%`,
+                                right: `${100 - ((priceRange[1] - priceBounds.min) / (priceBounds.max - priceBounds.min || 1)) * 100}%`,
                             }}
                         />
                         <input
                             type="range"
-                            min={0}
-                            max={100}
+                            min={priceBounds.min}
+                            max={priceBounds.max}
                             value={priceRange[1]}
                             onChange={(e) => {
                                 const val = parseInt(e.target.value);
@@ -85,35 +90,23 @@ export function FilterSidebar({
                 </div>
             </div>
 
-            {/* Color Filter */}
+            {/* Brand Filter */}
             <div>
                 <h3 className="text-[16px] font-semibold text-text-primary mb-4 pb-2 border-b border-border">
-                    Chose Color
+                    Brand
                 </h3>
                 <ul className="space-y-2.5">
-                    {colors.map((color) => (
-                        <li key={color.name}>
+                    {brands.map((brand) => (
+                        <li key={brand.slug}>
                             <button
-                                onClick={() => onColorToggle(color.name)}
-                                className="flex items-center gap-3 text-[14px] font-medium transition-colors"
+                                onClick={() => onBrandToggle(brand.slug)}
+                                className={`text-[14px] font-medium transition-colors ${
+                                    selectedBrands.includes(brand.slug)
+                                        ? 'text-text-primary'
+                                        : 'text-text-secondary hover:text-text-primary'
+                                }`}
                             >
-                                <span
-                                    className={`w-3 h-3 rounded-full border ${
-                                        selectedColors.includes(color.name)
-                                            ? 'border-text-primary ring-1 ring-text-primary ring-offset-1'
-                                            : 'border-border'
-                                    }`}
-                                    style={{ backgroundColor: color.hex }}
-                                />
-                                <span
-                                    className={`${
-                                        selectedColors.includes(color.name)
-                                            ? 'text-text-primary'
-                                            : 'text-text-secondary hover:text-text-primary'
-                                    }`}
-                                >
-                                    {color.name}
-                                </span>
+                                {brand.name}
                             </button>
                         </li>
                     ))}
@@ -136,28 +129,6 @@ export function FilterSidebar({
                         In Stock Only
                     </span>
                 </label>
-            </div>
-
-            {/* Product Tags */}
-            <div>
-                <h3 className="text-[16px] font-semibold text-text-primary mb-4 pb-2 border-b border-border">
-                    Product Tags
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                    {tags.map((tag) => (
-                        <button
-                            key={tag}
-                            onClick={() => onTagToggle(tag)}
-                            className={`px-3 py-1 text-[12px] font-medium rounded-md border transition-colors ${
-                                selectedTags.includes(tag)
-                                    ? 'bg-surface-inverse text-text-inverse border-surface-inverse'
-                                    : 'bg-surface text-text-secondary border-border hover:bg-surface-secondary'
-                            }`}
-                        >
-                            {tag}
-                        </button>
-                    ))}
-                </div>
             </div>
         </aside>
     );

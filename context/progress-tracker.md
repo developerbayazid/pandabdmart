@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 2 — Catalog (Storefront)
-**Last completed:** 05 Shop / Product Listing Page — Full UI
-**In progress:** 06 Shop Listing — Real Data + Filters/Search
+**Last completed:** 07 Category Pages — Full UI + Real Data
+**In progress:** 08 Product Detail Page — Full UI
 
 ---
 
@@ -24,8 +24,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ### Phase 2 — Catalog (Storefront)
 
 - [x] 05 Shop / Product Listing Page — Full UI
-- [ ] 06 Shop Listing — Real Data + Filters/Search
-- [ ] 07 Category Pages — Full UI + Real Data
+- [x] 06 Shop Listing — Real Data + Filters/Search
+- [x] 07 Category Pages — Full UI + Real Data
 - [ ] 08 Product Detail Page — Full UI
 - [ ] 09 Product Detail — Real Data + Variant Logic
 
@@ -69,3 +69,11 @@ Update this file after every completed feature. Any AI agent reading this should
 - `proxy.ts` (not `middleware.ts`) handles route-group session checks per architecture.md — created as part of 02. Admin layout lives at `app/admin/layout.tsx` (not inside a route group) so URLs resolve as `/admin/dashboard`, `/admin/products`, etc.
 - **04 Base Layouts & Shared UI complete** — `(storefront)` route group created with `layout.tsx` (Navbar + Footer wrapper); homepage moved to `app/(storefront)/page.tsx` with Navbar/Footer stripped. `(dashboard)` and `app/admin/layout.tsx` already existed from 02 and are functional. Shared UI primitives created in `components/ui/`: Button (primary/secondary/destructive/ghost variants), Input, Select, Badge (neutral/success/warning/error/info), Card (with Header/Title/Description/Content/Footer subcomponents), Skeleton (with text and card presets), Table (with Header/Body/Row/Head/Cell), Pagination (with ellipsis), Modal (with ESC/click-outside/overflow lock), Toast (with ToastProvider and `useToast` hook). Root-level `app/loading.tsx` (spinner), `app/error.tsx` (reset + home), `app/not-found.tsx` (404 with home CTA). `lib/utils.ts` with `cn()` helper (clsx + tailwind-merge). `components/providers/AppProviders.tsx` wraps root layout with ToastProvider globally.
 - **05 Shop / Product Listing Page — Full UI complete** — `app/(storefront)/shop/page.tsx` with breadcrumb, promotional banner (`ShopBanner` using `/images/Hero Image.png`), filter sidebar (`FilterSidebar` with category list, price range slider, color picker, stock toggle, product tags), active filter chips (`ActiveFilters` with removable tags + clear all), sort dropdown, product grid (`ShopProductCard` following homepage pattern: image with hover zoom, category label, name, price, Add To Cart button, out-of-stock overlay), pagination (`Pagination` with compact variant matching design: numbers + next arrow only, 9 products per page). Mobile responsive with drawer-based filters. Empty state with icon + "Clear All Filters" CTA. Mock data in `components/shop/mock-data.ts` (15 products). `components/ui/pagination.tsx` extended with `variant` prop (default/compact). `lib/constants/pagination.ts`: `PRODUCTS_PER_PAGE = 9`.
+- **Seed data loaded** — 12 products (all simple type, active status) across 4 categories (Fashion, Electronics, Home & Living, Beauty & Care) and 6 brands. Each product has 1 variant with stock, price, compare_price, SKU, and 1 primary image referencing `public/images/`. Run `npm run seed` to re-seed. Seed script: `scripts/seed-products.js`.
+- **06 Shop Listing — Real Data + Filters/Search complete** — Shop page wired to Supabase via `repositories/product.repository.ts`. Server component (`app/(storefront)/shop/page.tsx`) reads `searchParams`, calls `getShopProducts()` and `getShopFilterOptions()`, passes data to client component `ShopPageClient`. URL search params drive all state (category, brand, price range, stock, search query, sort, page) — shareable and back-button friendly. `FilterSidebar` updated: Color filter replaced with Brand filter (loaded from DB), Tags section removed. Search bar added (ilike on product name). Sort options: Default (newest), Price Low→High, Price High→Low. `PRODUCTS_PER_PAGE = 9`. `Suspense` boundary with skeleton fallback for `useSearchParams` hydration.
+- **Product card consolidated** — Single shared `components/product/ProductCard.tsx` used by all sections (ProductCards, TrendingProducts, RecentProducts, ShopPageClient). Card features: hover-reveal Add To Cart button (slides up from bottom of image on `group-hover`), out-of-stock overlay, BDT price with compare-at strikethrough, category label, product name. `components/shop/ShopProductCard.tsx` kept as thin re-export wrapper.
+- **Homepage wired to Supabase** — `app/(storefront)/page.tsx` is now a server component fetching products via `getHomepageProducts()`. FeaturedProduct (first product), ProductCards (next 3), TrendingProducts (all with real category tabs), RecentProducts (all, paginated 8/page) all use real DB data. Hero, CollectionGrid, FestiveBanner, LatestNews unchanged (non-product). `ShopProduct` type extended with `description` field.
+- **07 Category Pages — Full UI + Real Data complete** — `app/(storefront)/categories/[slug]/page.tsx`: server component with `generateMetadata()` for dynamic SEO. `repositories/category.repository.ts`: `getCategoryBySlug()` (fetches category + ancestors via materialized `path` field + children subcategories), `getCategoryProducts()` (products scoped to category_id, same filter/sort/pagination as shop), `getCategoryFilterOptions()` (brands + price range, no category filter since page is category-scoped). `components/category/CategoryBreadcrumb.tsx`: client component with linked ancestor path (Home > Parent > Current). `components/category/CategoryHero.tsx`: improved banner with category name, description, category label. `components/category/CategoryPageClient.tsx`: same URL-driven filter/sort/pagination pattern as ShopPageClient, adapted for `/categories/[slug]` base path. `components/category/CategoryPageFallback.tsx`: skeleton loading fallback. Subcategory cards shown before product grid when category has children. Category filter hidden from sidebar (page is already scoped). Types in `types/category.ts`.
+- **Navbar updated** — now async server component fetching categories from Supabase. Nav links are Home, Shop, then all categories from DB ordered by name (dynamic, replaces hardcoded Blog/Contact).
+- **ProductCard category clickable** — category label is now a `<Link>` to `/categories/{product.categorySlug}` with hover transition.
+- **Real-time search** — both `ShopPageClient` and `CategoryPageClient` search inputs now use 300ms debounced `onChange` instead of form submit. Input is controlled, syncs with URL param on back/forward navigation.

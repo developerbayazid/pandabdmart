@@ -2,15 +2,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Search, ShoppingCart } from 'lucide-react';
 import { AuthNavActions } from '@/components/auth/AuthNavActions';
+import { createClient } from '@/lib/supabase/server';
 
-const navLinks = [
-    { label: 'HOME', href: '/' },
-    { label: 'SHOP', href: '/shop' },
-    { label: 'BLOG', href: '/blog' },
-    { label: 'CONTACT', href: '/contact' },
-];
-
-export function Navbar() {
+export async function Navbar() {
+    const supabase = await createClient();
+    const { data: categories } = await supabase
+        .from('categories')
+        .select('name, slug')
+        .order('name');
     return (
         <header className="w-full">
             {/* Announcement Bar */}
@@ -47,13 +46,25 @@ export function Navbar() {
 
                     {/* Nav Links */}
                     <div className="hidden md:flex items-center gap-8">
-                        {navLinks.map((link) => (
+                        <Link
+                            href="/"
+                            className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors tracking-wide"
+                        >
+                            HOME
+                        </Link>
+                        <Link
+                            href="/shop"
+                            className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors tracking-wide"
+                        >
+                            SHOP
+                        </Link>
+                        {(categories ?? []).map((cat) => (
                             <Link
-                                key={link.href}
-                                href={link.href}
+                                key={cat.slug}
+                                href={`/categories/${cat.slug}`}
                                 className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors tracking-wide"
                             >
-                                {link.label}
+                                {cat.name.toUpperCase()}
                             </Link>
                         ))}
                     </div>
