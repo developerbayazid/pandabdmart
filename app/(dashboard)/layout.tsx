@@ -45,6 +45,7 @@ export default async function DashboardLayout({
                     <nav className="space-y-1">
                         <SidebarLink href="/account">Account</SidebarLink>
                         <SidebarLink href="/account/orders">Orders</SidebarLink>
+                        <SidebarLink href="/track">Track Order</SidebarLink>
                         <SidebarLink href="/account/wishlist">Wishlist</SidebarLink>
                         <SidebarLink href="/account/reviews">Reviews</SidebarLink>
                     </nav>

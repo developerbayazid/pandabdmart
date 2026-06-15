@@ -72,6 +72,12 @@ export async function Navbar() {
                         >
                             SHOP
                         </Link>
+                        <Link
+                            href="/track"
+                            className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors tracking-wide"
+                        >
+                            TRACK ORDER
+                        </Link>
                         {(categories ?? []).map((cat) => (
                             <Link
                                 key={cat.slug}

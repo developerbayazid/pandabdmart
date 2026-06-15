@@ -462,12 +462,158 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 - **Props:** `initialItems: CartItem[] | null`
 - **Behavior:** `app/(storefront)/cart/page.tsx` is a server component — fetches authenticated cart items via `getCartItems()`, passes `initialItems` to `CartPageClient`. `CartPageClient` uses `useCart` hook for dual guest/auth cart management. Guest: items resolved from zustand store. Auth: items from server, mutations via server actions with optimistic UI updates. Applies coupons via `validateCouponAction` with toast feedback. Returns empty state when items.length === 0.
 
+#### CheckoutPage
+- **File:** `components/checkout/CheckoutPage.tsx` (client), `app/(storefront)/checkout/page.tsx` (server)
+- **Classes:** Same card shell pattern as CartPage. Two-column layout: left `flex-1 min-w-0` (shipping form + zone selector), right `w-full lg:w-[420px] shrink-0` (order summary + payment + terms + place order)
+- **Props:** `initialItems: CartItem[]`, `zones: ShippingZone[]`, `userEmail?: string`
+- **Behavior:** Auth-gated server component. Client component manages all checkout state (shipping form, zone, payment method, coupon, terms). Validates before placing order. Shows empty state if cart is empty. Place Order currently shows toast — actual payment wiring in Feature 13/14.
+
+#### ShippingForm
+- **File:** `components/checkout/ShippingForm.tsx`
+- **Classes:**
+  - Section heading: `text-base font-semibold text-text-primary leading-6`
+  - Form label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Two-column grid: `grid grid-cols-1 sm:grid-cols-2 gap-4`
+  - Three-column grid: `grid grid-cols-1 sm:grid-cols-3 gap-4`
+- **Props:** `value: ShippingFormData`, `onChange: (value: ShippingFormData) => void`
+- **Behavior:** Controlled form with name, phone, address, city, district, postal code.
+
+#### ShippingZoneSelector
+- **File:** `components/checkout/ShippingZoneSelector.tsx`
+- **Classes:**
+  - Radio card: `flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-colors` selected `border-text-primary bg-surface-secondary` unselected `border-border hover:border-border-strong`
+  - Radio input: `w-4 h-4 text-text-primary border-border focus:ring-text-primary`
+  - Zone name: `text-sm font-medium text-text-primary`
+  - Cost: `text-sm font-semibold text-text-primary`
+- **Props:** `zones: ShippingZone[]`, `selectedId: string | null`, `onChange: (zoneId: string) => void`
+- **Behavior:** Radio card list for shipping zones. Inside Dhaka / Outside Dhaka pattern.
+
+#### CheckoutOrderSummary
+- **File:** `components/checkout/OrderSummary.tsx`
+- **Classes:**
+  - Card: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Item image: `shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-surface-secondary`
+  - Item name: `text-sm font-medium text-text-primary leading-snug hover:text-text-secondary transition-colors line-clamp-2`
+  - Quantity stepper: `flex items-center border border-border rounded-md` with `w-7 h-7` buttons and `border-x` value
+  - Price: `text-sm font-semibold text-text-primary`
+  - Remove button: `p-1 text-text-muted hover:text-error transition-colors`
+  - Coupon input: `w-full bg-surface border border-border rounded-md pl-9 pr-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Apply button: `bg-surface border border-border text-text-primary px-4 py-2 text-[13px] font-medium rounded-md hover:bg-surface-secondary disabled:opacity-50`
+  - Total: `text-[20px] font-semibold text-text-primary`
+- **Props:** `items: CartItem[]`, `summary: CheckoutSummary`, `couponCode: string | null`, `discount: number`, `onQuantityChange`, `onRemove`, `onCouponApply`
+- **Behavior:** Order summary sidebar with cart items (quantity stepper + remove), promo code, subtotal, shipping, discount, total. Similar to CartSummary but with inline item editing.
+
+#### PaymentMethodSelector
+- **File:** `components/checkout/PaymentMethodSelector.tsx`
+- **Classes:**
+  - Radio card: `flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-colors` selected `border-text-primary bg-surface-secondary` unselected `border-border hover:border-border-strong`
+  - Method name: `text-sm font-medium text-text-primary`
+  - Method subtitle: `text-xs text-text-muted mt-0.5`
+- **Props:** `value: PaymentMethod`, `onChange: (method: PaymentMethod) => void`
+- **Behavior:** Three radio cards: SSLCommerz (Pay online), bKash, Nagad.
+
+#### MfsInstructions
+- **File:** `components/checkout/MfsInstructions.tsx`
+- **Classes:**
+  - Container: `bg-surface-secondary border border-border rounded-xl p-4 space-y-4`
+  - Heading: `text-sm font-medium text-text-primary mb-2`
+  - Instructions: `text-sm text-text-secondary space-y-1.5 list-decimal list-inside`
+  - Merchant number: `text-text-primary` (bold)
+  - Input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+- **Props:** `method: PaymentMethod`, `txnId: string`, `paymentNumber: string`, `onTxnIdChange`, `onPaymentNumberChange`
+- **Behavior:** Shows bKash/Nagad payment instructions with merchant number, TxnID input, and payment number input.
+
 <!-- useCart, cart.store, cart.repository, cart.service, cart.actions, cart/merge API -->
-<!-- OrderSummary, ShippingForm, ShippingZoneSelector, PaymentMethodSelector, MFSInstructions -->
 
 ### Order Tracking
 
-<!-- OrderStatusBadge, OrderTimeline, InvoiceDownloadButton -->
+#### OrderStatusBadge
+- **File:** `components/order/OrderStatusBadge.tsx`
+- **Classes:** `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium` with status config mapping per ui-tokens.md canonical order status colors
+- **Props:** `status: OrderStatus`, `className?: string`
+- **Behavior:** Maps each of 8 order statuses to the canonical badge colors (pending/payment_pending → warning, paid/processing/shipped → info, delivered → success, cancelled/refunded → error). Single source of truth for status badge styling across the app.
+
+#### OrderTimeline
+- **File:** `components/order/OrderTimeline.tsx`
+- **Classes:**
+  - Step dot (current): `w-6 h-6 rounded-full bg-surface-inverse`
+  - Step dot (completed): `w-6 h-6 rounded-full bg-success-light`
+  - Step dot (future): `w-6 h-6 rounded-full bg-surface-tertiary`
+  - Step icon (current): `w-3.5 h-3.5 text-text-inverse`
+  - Step icon (completed): `w-3.5 h-3.5 text-success-foreground`
+  - Step icon (future): `w-3.5 h-3.5 text-text-muted`
+  - Connector line (completed): `w-px h-8 my-0.5 bg-success`
+  - Connector line (future): `w-px h-8 my-0.5 bg-border`
+  - Step label (active): `text-sm font-medium text-text-primary`
+  - Step label (future): `text-sm text-text-muted`
+  - Cancelled state: `w-6 h-6 rounded-full bg-error-light` with `XCircle` icon
+- **Props:** `status: OrderStatus`, `paymentMethod: string`, `className?: string`
+- **Behavior:** Linear timeline showing order journey. Adapts to payment method (hides "Payment Pending" step for COD orders). Shows cancelled state with red X icon and "Order Cancelled" message. Steps: Order Placed → Payment Pending (MFS only) → Payment Confirmed → Processing → Shipped → Delivered.
+
+#### OrderItemsList
+- **File:** `components/order/OrderItemsList.tsx`
+- **Classes:**
+  - Item row: `flex gap-4 p-3 bg-surface-secondary rounded-lg`
+  - Image container: `shrink-0 w-16 h-16 rounded-md overflow-hidden bg-surface-tertiary`
+  - Product name: `text-sm font-medium text-text-primary truncate`
+  - SKU: `text-xs text-text-muted mt-0.5`
+  - Quantity: `text-sm text-text-secondary`
+  - Line total: `text-sm font-semibold text-text-primary shrink-0`
+- **Props:** `items: OrderItemSnapshot[]`, `className?: string`
+- **Behavior:** Renders order items with product_snapshot name, sku_snapshot, quantity, unit price, and line total. Shows placeholder image when no image_url in snapshot.
+
+#### ShippingAddressDisplay
+- **File:** `components/order/ShippingAddressDisplay.tsx`
+- **Classes:**
+  - Name: `text-sm font-medium text-text-primary`
+  - Phone/Address: `text-sm text-text-secondary`
+- **Props:** `shipping: OrderShipping`, `className?: string`
+- **Behavior:** Simple display of shipping address fields.
+
+#### CancelOrderButton
+- **File:** `components/order/CancelOrderButton.tsx`
+- **Classes:** Uses `Button` destructive variant with `XCircle` icon
+- **Props:** `orderId: string`, `canCancel: boolean`
+- **Behavior:** Client component. Only renders when `canCancel` is true (pending or payment_pending status). Confirms via browser dialog before calling `cancelOrderAction`. Shows loading state and error message. Self-hides after successful cancellation.
+
+#### InvoiceDownloadButton
+- **File:** `components/order/InvoiceDownloadButton.tsx`
+- **Classes:** Uses `Button` secondary variant with `Download` icon
+- **Props:** `orderId: string`
+- **Behavior:** Client component. Calls `downloadInvoiceAction` which generates PDF via @react-pdf/renderer on the server. Creates blob URL for browser download. Shows loading state during generation and error message on failure.
+
+#### GuestOrderLookup
+- **File:** `components/order/GuestOrderLookup.tsx`
+- **Classes:**
+  - Card: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Heading: `text-base font-semibold text-text-primary leading-6`
+  - Subtitle: `text-sm text-text-secondary mb-6`
+  - Form label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Error: `text-sm text-error bg-error-light px-3 py-2 rounded-md`
+- **Props:** `onOrderFound: (order: Order) => void`
+- **Behavior:** Client component. Validates Order ID + email or phone before calling `guestLookupAction`. Shows inline error messages. Calls `onOrderFound` callback on success.
+
+#### OrderTrackPage
+- **File:** `components/order/OrderTrackPage.tsx`
+- **Classes:** Same card shell and layout patterns as rest of app
+- **Props:** none (reads orderId from useParams)
+- **Behavior:** Main orchestrator client component. Three states:
+  1. **Loading** — spinner while fetching order
+  2. **Guest lookup** — shows `GuestOrderLookup` when not authenticated or order not found for current user
+  3. **Order display** — two-column layout (main + sidebar) with:
+     - Header: order ID, date, status badge, cancel + invoice buttons
+     - Main: Order Timeline + Order Items
+     - Sidebar: Order Summary (subtotal, shipping, discount, total), Shipping Address, Payment Info
+     - Supabase Realtime subscription on `orders` table for live status updates (auto-updates badge and timeline)
+  4. **Error state** — icon + message + "Try another order" link
+- **Files also created:** `app/(storefront)/track/[orderId]/page.tsx` (server component wrapper with Suspense), `app/(storefront)/track/page.tsx` (standalone lookup page), `components/order/TrackPageClient.tsx`
+
+#### Invoice PDF
+- **File:** `lib/pdf/invoice.tsx`, `lib/pdf/render.tsx`
+- **Library:** `@react-pdf/renderer` — uses `Document`, `Page`, `Text`, `View` components
+- **Behavior:** Server-side only. Generates A4 PDF with store name, invoice title, order ID, date, shipping address, payment method, items table, totals breakdown, and footer. `renderInvoiceBuffer()` helper in `lib/pdf/render.tsx` wraps `renderToBuffer()` call.
 
 ### Customer Dashboard
 
@@ -725,13 +871,33 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 - Related Products and FAQ sections share the same centered serif heading + subtitle pattern
 - Size chart is a collapsible table following the same table pattern as admin tables
 
+## Patterns — Checkout (Imprinted 2026-06-15)
+
+| Property | Class | Used By |
+|----------|-------|---------|
+| Checkout page layout | `flex flex-col lg:flex-row gap-8` with left `flex-1 min-w-0` and right `w-full lg:w-[420px] shrink-0` | CheckoutPage |
+| Checkout card shell | `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]` | ShippingForm, ShippingZoneSelector, CheckoutOrderSummary, PaymentMethodSelector, MfsInstructions |
+| Checkout section heading | `text-base font-semibold text-text-primary leading-6` | ShippingForm, ShippingZoneSelector, CheckoutOrderSummary, PaymentMethodSelector |
+| Radio card (selected) | `flex items-center gap-4 p-4 border rounded-xl cursor-pointer border-text-primary bg-surface-secondary` | ShippingZoneSelector, PaymentMethodSelector |
+| Radio card (unselected) | `flex items-center gap-4 p-4 border rounded-xl cursor-pointer border-border hover:border-border-strong` | ShippingZoneSelector, PaymentMethodSelector |
+| Radio input | `w-4 h-4 text-text-primary border-border focus:ring-text-primary` | ShippingZoneSelector, PaymentMethodSelector |
+| Checkout total | `text-[20px] font-semibold text-text-primary` | CheckoutOrderSummary |
+
+**Pattern notes:**
+- Checkout page uses the same card shell as CartSummary and other admin/stat cards
+- Radio cards for shipping zones and payment methods share identical styling
+- Order summary sidebar is wider than cart summary (`420px` vs `380px`) because it includes inline item editing
+- MfsInstructions uses `bg-surface-secondary` inner container to distinguish instructions from the main card
+- Place Order button is the same primary inverted pattern as Proceed to Checkout
+
 Likely early candidates for shared patterns in this project:
 
-- Card shell (used by product cards, dashboard stat cards, admin table containers)
+- Card shell (used by product cards, dashboard stat cards, admin table containers, checkout sections)
 - Form input (used by checkout shipping form, profile form, product/category/coupon admin forms)
 - Status badge (order status, payment status, stock status — each needs a consistent color mapping)
 - Table row/header (shop product table is the only storefront table; admin has many — establish the pattern early in admin work)
 - Primary/secondary/destructive button (Add to Cart, Place Order, Approve/Reject, Delete)
+- Radio card (shipping zone, payment method, possibly future admin settings)
 
 ---
 

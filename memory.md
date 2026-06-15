@@ -1,55 +1,85 @@
-# Memory — Add to Cart Buttons + Dynamic Navbar Cart Count
+# Memory — Feature 15: Order Tracking Page
 
-Last updated: 2026-06-15 08:01
+Last updated: 2026-06-15 23:28
 
 ## What was built
 
-**Add to Cart button functionality across all product cards:**
-- Created `hooks/useAddToCart.ts` — dual guest/auth hook. Guest → zustand store; Auth → `addItemAction` server action. Toast on success/error.
-- Updated `types/shop.ts` — added `type: 'simple' | 'variable'` and `variantId: string | null` to `ShopProduct`
-- Updated `types/product.ts` — added `type` and `variantId` to `RelatedProduct`
-- Updated `repositories/product.repository.ts` — `getShopProducts`, `getHomepageProducts`, `getRelatedProducts` fetch `type` and map `variantId`
-- Updated `repositories/category.repository.ts` — `getCategoryProducts` fetches `type` and maps `variantId`
-- Updated `components/product/ProductCard.tsx` — simple products: add to cart; variable: shows "Select Options", navigates to detail
-- Updated `components/product/ProductDetailPage.tsx` — three button states: Out of Stock / Select Options / Add To Cart. Uses selectedVariant + quantity
-- Updated `components/product/RelatedProducts.tsx` — same simple/variable pattern
-- Updated `components/home/FeaturedProduct.tsx` — converted to client, same simple/variable pattern
+**Feature 15: Order Tracking Page** — complete with all sub-features:
 
-**Dynamic navbar cart count:**
-- Created `components/cart/CartNavLink.tsx` — client component. Guest: zustand subscription (instant). Auth: server-provided count. Badge always visible (including 0). Caps at "99+".
-- Updated `components/layout/Navbar.tsx` — fetches `getCartCount(userId)` server-side for auth users, passes `initialCount` to CartNavLink
-- Added `getCartCount(userId)` to `repositories/cart.repository.ts` — sums all `cart_items.quantity` for the user's cart
+New files:
+- `types/order.ts` — Order, OrderPayment, OrderShipping, OrderItemSnapshot, OrderLookupInput types
+- `services/order.service.ts` — getOrder, guestLookup, cancelUserOrder, generateInvoice; shared `mapDbRowToOrder()` helper
+- `actions/order.actions.ts` — getOrderAction, guestLookupAction, cancelOrderAction, downloadInvoiceAction
+- `lib/pdf/invoice.tsx` — @react-pdf/renderer InvoicePDF component (Document, Page, View, Text)
+- `lib/pdf/render.tsx` — renderInvoiceBuffer() helper wrapping renderToBuffer
+- `components/order/OrderStatusBadge.tsx` — uses shared Badge component via status-to-variant mapping
+- `components/order/OrderTimeline.tsx` — linear timeline; adapts to payment method; cancelled state
+- `components/order/OrderItemsList.tsx` — renders items from snapshots with prices
+- `components/order/ShippingAddressDisplay.tsx` — read-only address display
+- `components/order/CancelOrderButton.tsx` — client component; confirm dialog; calls cancelOrderAction
+- `components/order/InvoiceDownloadButton.tsx` — client component; blob download from server action
+- `components/order/GuestOrderLookup.tsx` — orderId + email or phone lookup form
+- `components/order/OrderTrackPage.tsx` — main orchestrator; 3 states (loading/guest lookup/order display); Supabase Realtime
+- `components/order/TrackPageClient.tsx` — wraps GuestOrderLookup for /track page
+- `app/(storefront)/track/page.tsx` — standalone lookup page
+- `app/(storefront)/track/[orderId]/page.tsx` — server component + Suspense
+- `app/(dashboard)/account/orders/page.tsx` — customer order history with clickable full UUID IDs → /track/[orderId]
+- `supabase/migrations/20260615230000_add_customer_email.sql` — adds customer_email to orders + guest_lookup_order RPC
+- `supabase/migrations/20260615235000_cancel_order_rpc.sql` — cancel_order security definer RPC
+
+Modified:
+- `repositories/order.repository.ts` — added getOrderById(), getOrderByIdWithVerification() (uses RPC), cancelOrder() (uses RPC); added customerEmail to CreateOrderInput; stores customer_email on order creation; COD cancel restores stock
+- `services/checkout.service.ts` — passes customerEmail to repository
+- `components/layout/Navbar.tsx` — added "TRACK ORDER" link between SHOP and categories
+- `app/(dashboard)/layout.tsx` — added "Track Order" sidebar link
+- `lib/utils.ts` — formatCurrency updated to use ৳ symbol
+- `components/order/OrderItemsList.tsx` / `OrderTrackPage.tsx` — import formatCurrency from lib/utils
+- `components/order/OrderStatusBadge.tsx` — uses shared Badge component (not standalone)
+- `context/progress-tracker.md` / `context/ui-registry.md` — updated
+- `package.json` — added @react-pdf/renderer
 
 ## Decisions made
 
-- Cart count for guests: zustand store subscription — updates instantly when items change
-- Cart count for auth users: server-side fetch on each page load — updates on navigation
-- Badge always visible (including 0) — user requested this explicitly
-- Simple/variable product distinction: variantId is set only when variants.length === 1 + product.type === 'simple'
-- Variable product card buttons: "Select Options" text, navigates to product detail instead of adding to cart
+- **Guest lookup uses security definer RPC** (`guest_lookup_order`) — bypasses RLS since guests can't read users.email or orders (RLS `orders_read_own` requires `auth.uid()`)
+- **Cancel uses security definer RPC** (`cancel_order`) — customers can't UPDATE orders due to `orders_admin_update` RLS; RPC handles stock release/restore + status update atomically
+- **customer_email stored on orders table** — needed for guest email verification since users table is RLS-protected
+- **COD cancel restores stock** — previously missing; now handled in both the RPC and the JS fallback
+- **OrderStatusBadge uses shared Badge component** — maps OrderStatus to Badge variant strings (success/warning/error/info)
+- **formatCurrency centralized in lib/utils.ts** — uses ৳ prefix; removed 3 local duplicates
+
+## Problems solved
+
+- Guest lookup failed because `users!inner(email)` join was blocked by RLS — fixed with `guest_lookup_order` security definer RPC that bypasses RLS
+- Cancel order failed because `orders_admin_update` RLS blocked customer UPDATE — fixed with `cancel_order` security definer RPC
+- COD order cancellation never restored decremented stock — fixed in both the RPC and JS fallback
+- Duplicated DB-to-Order mapping across 3 service functions — extracted to `mapDbRowToOrder()` helper
+- formatCurrency defined in 3 places with inconsistent implementation — centralized in lib/utils.ts
 
 ## Current state
 
 - Phase 1: 01–04 ✓
-- Phase 2: 05–09 ✓ (complete)
-- Phase 3: 10 ✓, 11 ✓, Add to Cart wired ✓, Navbar cart count ✓
-- All Add to Cart buttons functional across ProductCard, RelatedProducts, FeaturedProduct, ProductDetailPage
-- Cart count badge dynamic in navbar (guest=zustand, auth=server-side)
-- TypeScript + next build clean, lint: 0 new errors
-- All styling uses CSS variables from ui-tokens.md
+- Phase 2: 05–09 ✓
+- Phase 3: 10–14 ✓
+- Phase 4: 15 ✓ (Order Tracking Page complete)
+- Build: clean (0 TS errors)
+- Routes: /track (lookup), /track/[orderId] (tracking), /account/orders (order history)
+- Storefront navbar: TRACK ORDER link present
+- Dashboard sidebar: Orders + Track Order links present
+- Guest lookup: works via guest_lookup_order RPC (migration 20260615230000 deployed)
+- Cancel order: works via cancel_order RPC (migration 20260615235000 deployed)
+- Realtime: order status updates live on tracking page
+- Invoice: PDF download via @react-pdf/renderer
 
 ## Next session starts with
 
-Phase 3 — Feature 12: Checkout Page — Full UI:
-- `app/(storefront)/checkout/page.tsx` — checkout route (auth-gated)
-- Shipping information form (name, phone, address, city, district, postal code)
-- Shipping zone selection (Inside Dhaka / Outside Dhaka radio)
-- Order summary sidebar (line items from cart, subtotal, coupon discount, shipping cost, grand total)
-- Payment method selection (SSLCommerz / bKash / Nagad radio cards)
-- bKash/Nagad payment instructions + TxnID + payment number fields
-- Place Order button
-- Design reference: `context/designs/Billing.png`
+Phase 4 — Feature 16: Customer Dashboard — Full UI + Real Data:
+- `/account` page: profile form (name, phone, avatar upload)
+- `/account/wishlist` page: grid of saved variants with "Move to Cart" / remove
+- `/account/reviews` page: list of user's reviews with edit/delete
+- Address book under `/account`: list/add/edit/delete addresses
+- Real data from Supabase, RLS-scoped to current user
 
 ## Open questions
 
-- None
+- SSLCommerz API keys needed to un-hide SSLCommerz from payment selector
+- Wishlist and Reviews pages are placeholder routes (sidebar links exist but pages don't)
