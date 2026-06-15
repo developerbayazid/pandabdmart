@@ -6,9 +6,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Current Status
 
-**Phase:** Phase 2 — Catalog (Storefront)
-**Last completed:** 07 Category Pages — Full UI + Real Data
-**In progress:** 08 Product Detail Page — Full UI
+**Phase:** Phase 3 — Cart & Checkout
+**Last completed:** 11 Cart Logic — Guest + Authenticated
+**In progress:** —
 
 ---
 
@@ -26,13 +26,13 @@ Update this file after every completed feature. Any AI agent reading this should
 - [x] 05 Shop / Product Listing Page — Full UI
 - [x] 06 Shop Listing — Real Data + Filters/Search
 - [x] 07 Category Pages — Full UI + Real Data
-- [ ] 08 Product Detail Page — Full UI
-- [ ] 09 Product Detail — Real Data + Variant Logic
+- [x] 08 Product Detail Page — Full UI
+- [x] 09 Product Detail — Real Data + Variant Logic
 
 ### Phase 3 — Cart & Checkout
 
-- [ ] 10 Cart Page — Full UI
-- [ ] 11 Cart Logic — Guest + Authenticated
+- [x] 10 Cart Page — Full UI
+- [x] 11 Cart Logic — Guest + Authenticated
 - [ ] 12 Checkout Page — Full UI
 - [ ] 13 SSLCommerz Payment Flow
 - [ ] 14 bKash / Nagad Manual Payment Flow
@@ -77,3 +77,8 @@ Update this file after every completed feature. Any AI agent reading this should
 - **Navbar updated** — now async server component fetching categories from Supabase. Nav links are Home, Shop, then all categories from DB ordered by name (dynamic, replaces hardcoded Blog/Contact).
 - **ProductCard category clickable** — category label is now a `<Link>` to `/categories/{product.categorySlug}` with hover transition.
 - **Real-time search** — both `ShopPageClient` and `CategoryPageClient` search inputs now use 300ms debounced `onChange` instead of form submit. Input is controlled, syncs with URL param on back/forward navigation.
+- **08 Product Detail Page — Full UI + Real Data complete** — `app/(storefront)/products/[slug]/page.tsx`: server component with `generateMetadata()` for dynamic SEO. `repositories/product.repository.ts`: `getProductBySlug()` (fetches product with all variants, images, attributes via nested select), `getRelatedProducts()` (same category excluding current, limit 4). Types: `types/product.ts` (`ProductDetail`, `ProductVariant`, `ProductAttribute`, `ProductReview`, `RelatedProduct`, `FaqItem`). Components: `ProductImageGallery` (vertical thumbnails + main image, clickable thumbnails), `VariantSelector` (attribute pill buttons for Size/Color/etc.), `QuantitySelector` (+/- stepper), `ProductTabs` (Product description / Product info tabs with specs), `SizeChart` (collapsible table with Size/Chest/Length/Shoulder/Sleeve), `RelatedProducts` (4-column grid with `RelatedProductCard` matching `ProductCard` hover pattern: group-hover Add To Cart button, out-of-stock overlay, category link, name link), `FaqSection` (accordion with 5 default questions). `ProductDetailPage` client component: variant selection updates price/stock/SKU + total price line (`displayPrice * quantity`), stock status indicators (In Stock/Low Stock/Out of Stock with colored dots), quantity validation against available stock, wishlist heart toggle, breadcrumb (Home > Product Name), SKU and Categories display. ProductCard + RelatedProductCard links updated to `/products/{slug}` for all sections.
+- **09 Product Detail — Real Data + Variant Logic complete** — **Reviews:** `getProductBySlug()` now fetches real reviews from `public.reviews` table with user names, computes average rating and review count. `ProductDetail` type expanded with `reviews: ProductReview[]`. `ProductTabs` gains a "Reviews (N)" tab with `ReviewSummary` (average rating + 5-star distribution bars), `ReviewList` (individual review cards with star rating, user name, date, comment), and `ReviewForm` (auth-gated star selector + comment textarea, shows "Sign In" link for guests, calls `submitReviewAction` server action). Backend: `repositories/review.repository.ts` (createReview with unique-constraint handling), `services/review.service.ts` (validation: rating 1-5, comment ≥10 chars, duplicate check), `actions/review.actions.ts` (server action with `requireAuth()`, revalidates product path on success). **Recently Viewed:** `hooks/useRecentlyViewed.ts` (localStorage helper, max 6 items). `components/product/RecentlyViewed.tsx` — client component reading from localStorage, 4-column grid of product cards excluding current product. `ProductDetailPage` saves current product to localStorage on mount. **Realtime Stock:** `hooks/useRealtimeStock.ts` — subscribes to `product_variants` UPDATE events filtered by `product_id`, maps payload to variant updates. `ProductDetailPage` uses `liveVariants` state driven by realtime, passed to `VariantSelector`, `ProductImageGallery`, and all price/stock derivations.
+- **10 Cart Page — Full UI complete** — `app/(storefront)/cart/page.tsx` renders `CartPage` client component. Types: `types/cart.ts` (`CartItem`, `CartSummaryData`, `CartItemUpdate`). Components: `CartItemRow` (image, product name link, variant attributes, SKU, quantity +/- stepper with stock validation, line total, compare-at strikethrough, remove button, low stock warning), `CartSummary` (promo code input + Apply button, subtotal with item count, shipping placeholder, total with tax note, "Proceed to Checkout" primary button, "Continue Shopping" link), `EmptyCart` (ShoppingCart icon, empty text, "Continue Shopping" CTA to /shop). Mock data in `CartPage` for visual verification (2 sample items). Page layout: two-column (items left, summary right) on desktop, stacked on mobile. All styling uses CSS variables from ui-tokens.md.
+- **11 Cart Logic — Guest + Authenticated complete** — (full details above). **Add to Cart wired:** Created `hooks/useAddToCart.ts` — dual guest/auth add-to-cart hook. For guests: adds to zustand store. For authenticated: calls `addItemAction` server action. Shows toast on success/error. Updated `ShopProduct` + `RelatedProduct` types with `type` and `variantId` fields. Updated all three repositories (`getShopProducts`, `getHomepageProducts`, `getRelatedProducts`, `getCategoryProducts`) to fetch `type` and map `variantId` for simple (single-variant) products. **ProductCard:** Simple products → adds directly to cart. Variable products → button shows "Select Options" and navigates to `/products/{slug}`. **RelatedProducts (RelatedProductCard):** Same pattern as ProductCard. **ProductDetailPage:** Button disabled when no variant selected (variable products). Button shows three states: "Out of Stock" / "Select Options" (variable, no variant) / "Add To Cart". On click, adds selected variant with chosen quantity. **FeaturedProduct:** Converted to client component, same simple/variable pattern as ProductCard.
+- **Navbar cart count dynamic** — Created `components/cart/CartNavLink.tsx` client component. Guest: reads total quantity from zustand store (instant updates). Authenticated: receives `initialCount` from server via `getCartCount(userId)` (total quantity sum). Badge always visible (including 0). Caps display at "99+". Navbar updated to fetch authenticated cart count server-side via `repositories/cart.repository.ts:getCartCount()`.

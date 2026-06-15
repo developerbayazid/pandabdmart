@@ -1,8 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, ShoppingCart } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { AuthNavActions } from '@/components/auth/AuthNavActions';
+import { CartNavLink } from '@/components/cart/CartNavLink';
 import { createClient } from '@/lib/supabase/server';
+import { getCartCount } from '@/repositories/cart.repository';
 
 export async function Navbar() {
     const supabase = await createClient();
@@ -10,6 +12,18 @@ export async function Navbar() {
         .from('categories')
         .select('name, slug')
         .order('name');
+
+    let cartCount: number | null = null;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        try {
+            cartCount = await getCartCount(user.id);
+        } catch {
+            cartCount = 0;
+        }
+    }
+
     return (
         <header className="w-full">
             {/* Announcement Bar */}
@@ -77,16 +91,7 @@ export async function Navbar() {
                         >
                             <Search className="w-5 h-5" />
                         </button>
-                        <Link
-                            href="/cart"
-                            className="p-2 text-text-secondary hover:text-text-primary transition-colors relative"
-                            aria-label="Cart"
-                        >
-                            <ShoppingCart className="w-5 h-5" />
-                            <span className="absolute -top-0.5 -right-0.5 bg-text-primary text-white text-[10px] font-medium rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
-                                0
-                            </span>
-                        </Link>
+                        <CartNavLink initialCount={cartCount} />
                         <AuthNavActions />
                     </div>
                 </div>

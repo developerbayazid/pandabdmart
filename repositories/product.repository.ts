@@ -1,4 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
+import type {
+    ProductDetail,
+    ProductVariant,
+    ProductAttribute,
+    ProductReview,
+    RelatedProduct,
+} from '@/types/product';
 import type { ShopFilters, ShopFilterOptions, ShopPageResult, ShopProduct } from '@/types/shop';
 import { PRODUCTS_PER_PAGE } from '@/lib/constants/pagination';
 
@@ -74,7 +81,6 @@ export async function getShopProducts(filters: ShopFilters = {}): Promise<ShopPa
 
     let products: ShopProduct[] = (data ?? []).map(mapRowToProduct);
 
-    // price filtering
     if (filters.minPrice != null) {
         products = products.filter((p) => p.price >= filters.minPrice!);
     }
@@ -82,12 +88,10 @@ export async function getShopProducts(filters: ShopFilters = {}): Promise<ShopPa
         products = products.filter((p) => p.price <= filters.maxPrice!);
     }
 
-    // stock filtering
     if (filters.inStockOnly) {
         products = products.filter((p) => p.stock > 0);
     }
 
-    // sorting
     switch (filters.sort) {
         case 'price-asc':
             products.sort((a, b) => a.price - b.price);
@@ -143,10 +147,14 @@ function mapRowToProduct(row: Record<string, unknown>): ShopProduct {
         })),
     );
 
+    const primaryVariantId = variants.length === 1 ? (variants[0].id as string) : null;
+
     return {
         id: row.id as string,
         slug: row.slug as string,
         name: row.name as string,
+        type: (row.type as 'simple' | 'variable') ?? 'simple',
+        variantId: primaryVariantId,
         categorySlug: category.slug,
         categoryName: category.name,
         brandSlug: brand.slug,
@@ -168,7 +176,7 @@ export async function getHomepageProducts(): Promise<ShopProduct[]> {
     const { data, error } = await supabase
         .from('products')
         .select(
-            `id, name, slug, description, created_at,
+            `id, name, slug, type, created_at,
             category:categories!inner(id, name, slug),
             brand:brands!inner(id, name, slug),
             variants:product_variants(id, price, compare_price, stock, reserved_stock, sold_count, is_active, variant_images(url, is_primary))`,
@@ -219,4 +227,208 @@ export async function getShopFilterOptions(): Promise<ShopFilterOptions> {
         brands: (brands ?? []).map((b) => ({ slug: b.slug, name: b.name })),
         priceRange: { min: minPrice, max: maxPrice },
     };
+}
+
+export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
+    const supabase = await createClient();
+
+    const { data: product, error } = await supabase
+        .from('products')
+        .select(
+            `id, name, slug, description, type, status, specs,
+            category:categories!inner(id, name, slug),
+            brand:brands!inner(id, name, slug),
+            variants:product_variants(id, sku, price, compare_price, stock, reserved_stock, sold_count, is_active, variant_images(url, is_primary, sort_order), variant_attribute_values(attribute_value_id, attribute_values(id, value, attribute_id, attributes(id, name))))`,
+        )
+        .eq('slug', slug)
+        .eq('status', 'active')
+        .is('deleted_at', null)
+        .single();
+
+    if (error || !product) {
+        console.error('[repositories/product] getProductBySlug:', error);
+        return null;
+    }
+
+    const category = product.category as unknown as Record<string, string>;
+    const brand = product.brand as unknown as Record<string, string>;
+
+    const rawVariants = (product.variants as Record<string, unknown>[]) ?? [];
+
+    const variants: ProductVariant[] = rawVariants.map((v) => {
+        const rawImages = (v.variant_images as Record<string, unknown>[]) ?? [];
+        const images = rawImages.map((img) => ({
+            url: img.url as string,
+            isPrimary: img.is_primary as boolean,
+            sortOrder: (img.sort_order as number) ?? 0,
+        }));
+
+        const rawAttrValues = (v.variant_attribute_values as Record<string, unknown>[]) ?? [];
+        const attributes = rawAttrValues.map((av) => {
+            const attrValue = av.attribute_values as Record<string, unknown>;
+            const attr = attrValue?.attributes as Record<string, unknown>;
+            return {
+                attributeId: (attr?.id as string) ?? '',
+                attributeName: (attr?.name as string) ?? '',
+                valueId: (attrValue?.id as string) ?? '',
+                value: (attrValue?.value as string) ?? '',
+            };
+        });
+
+        return {
+            id: v.id as string,
+            sku: v.sku as string,
+            price: (v.price as number) ?? 0,
+            comparePrice: (v.compare_price as number) ?? null,
+            stock: (v.stock as number) ?? 0,
+            reservedStock: (v.reserved_stock as number) ?? 0,
+            soldCount: (v.sold_count as number) ?? 0,
+            isActive: (v.is_active as boolean) ?? true,
+            images,
+            attributes,
+        };
+    });
+
+    // Extract attributes from variants
+    const attributeMap = new Map<string, ProductAttribute>();
+    for (const variant of variants) {
+        for (const attr of variant.attributes) {
+            if (!attributeMap.has(attr.attributeId)) {
+                attributeMap.set(attr.attributeId, {
+                    id: attr.attributeId,
+                    name: attr.attributeName,
+                    values: [],
+                });
+            }
+            const existing = attributeMap.get(attr.attributeId)!;
+            if (!existing.values.find((v) => v.id === attr.valueId)) {
+                existing.values.push({ id: attr.valueId, value: attr.value });
+            }
+        }
+    }
+
+    // Fetch reviews for this product
+    const { data: reviewData } = await supabase
+        .from('reviews')
+        .select('id, rating, comment, created_at, user:users!inner(full_name)')
+        .eq('product_id', product.id)
+        .order('created_at', { ascending: false });
+
+    const reviews: ProductReview[] = (reviewData ?? []).map((r) => {
+        const user = r.user as unknown as { full_name: string | null };
+        return {
+            id: r.id as string,
+            userName: user.full_name ?? 'Anonymous',
+            rating: r.rating as number,
+            comment: (r.comment as string) ?? '',
+            createdAt: r.created_at as string,
+        };
+    });
+
+    const avgRating =
+        reviews.length > 0
+            ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
+            : 0;
+
+    return {
+        id: product.id as string,
+        slug: product.slug as string,
+        name: product.name as string,
+        description: (product.description as string) ?? null,
+        type: (product.type as 'simple' | 'variable') ?? 'simple',
+        status: product.status as string,
+        brandName: brand.name,
+        brandSlug: brand.slug,
+        categoryName: category.name,
+        categorySlug: category.slug,
+        specs: (product.specs as Record<string, unknown>) ?? null,
+        variants,
+        attributes: Array.from(attributeMap.values()),
+        rating: avgRating,
+        reviewCount: reviews.length,
+        reviews,
+    };
+}
+
+export async function getRelatedProducts(
+    categorySlug: string,
+    excludeSlug: string,
+    limit: number = 4,
+): Promise<RelatedProduct[]> {
+    const supabase = await createClient();
+
+    const { data: category } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', categorySlug)
+        .single();
+
+    if (!category) return [];
+
+    const { data, error } = await supabase
+        .from('products')
+        .select(
+            `id, name, slug, type, created_at,
+            category:categories!inner(id, name, slug),
+            brand:brands!inner(id, name, slug),
+            variants:product_variants(id, price, compare_price, stock, reserved_stock, sold_count, is_active, variant_images(url, is_primary))`,
+        )
+        .eq('status', 'active')
+        .is('deleted_at', null)
+        .eq('category_id', category.id)
+        .neq('slug', excludeSlug)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('[repositories/product] getRelatedProducts:', error);
+        return [];
+    }
+
+    return (data ?? []).map((row) => {
+        const category = row.category as unknown as Record<string, string>;
+        const brand = row.brand as unknown as Record<string, string>;
+        const variants = (row.variants as Record<string, unknown>[]) ?? [];
+
+        const price = getMinPrice(
+            variants.map((v) => ({ price: (v.price as number) ?? 0 })),
+        );
+
+        const cheapestVariant = [...variants].sort(
+            (a, b) => ((a.price as number) ?? 0) - ((b.price as number) ?? 0),
+        )[0];
+        const comparePrice =
+            cheapestVariant && (cheapestVariant.compare_price as number)
+                ? (cheapestVariant.compare_price as number)
+                : null;
+
+        const stock = getAvailableStock(
+            variants.map((v) => ({
+                stock: (v.stock as number) ?? 0,
+                reserved_stock: (v.reserved_stock as number) ?? 0,
+            })),
+        );
+
+        const image = getPrimaryImage(
+            variants.map((v) => ({
+                variant_images: v.variant_images as { url: string; is_primary: boolean }[] | null,
+            })),
+        );
+
+        const primaryVariantId = variants.length === 1 ? (variants[0].id as string) : null;
+
+        return {
+            id: row.id as string,
+            slug: row.slug as string,
+            name: row.name as string,
+            type: (row.type as 'simple' | 'variable') ?? 'simple',
+            variantId: primaryVariantId,
+            price,
+            comparePrice,
+            image,
+            categoryName: category.name,
+            categorySlug: category.slug,
+            stock,
+        };
+    });
 }

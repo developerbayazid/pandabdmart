@@ -1,19 +1,59 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import type { ShopProduct } from '@/types/shop';
-import { useAddToCart } from '@/hooks/useAddToCart';
+import type { RecentlyViewedProduct } from '@/hooks/useRecentlyViewed';
 
-type ProductCardProps = {
-    product: ShopProduct;
+type RecentlyViewedProps = {
+    currentProductId: string;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
-    const router = useRouter();
-    const { addToCart } = useAddToCart();
+export function RecentlyViewed({ currentProductId }: RecentlyViewedProps) {
+    const [products, setProducts] = useState<RecentlyViewedProduct[]>([]);
 
+    useEffect(() => {
+        const STORAGE_KEY = 'pandabdmart_recently_viewed';
+        const MAX_ITEMS = 6;
+
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    const filtered = parsed
+                        .filter((p: RecentlyViewedProduct) => p.id !== currentProductId)
+                        .slice(0, MAX_ITEMS);
+                    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading from localStorage after mount is standard
+                    setProducts(filtered);
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }, [currentProductId]);
+
+    if (products.length === 0) return null;
+
+    return (
+        <section className="mt-16">
+            <h2 className="font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary text-center mb-2">
+                Recently Viewed
+            </h2>
+            <p className="text-[13px] text-text-secondary text-center mb-8">
+                Pick up where you left off
+            </p>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                {products.map((product) => (
+                    <RecentlyViewedCard key={product.id} product={product} />
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function RecentlyViewedCard({ product }: { product: RecentlyViewedProduct }) {
     const formattedPrice = new Intl.NumberFormat('en-BD', {
         style: 'currency',
         currency: 'BDT',
@@ -27,17 +67,6 @@ export function ProductCard({ product }: ProductCardProps) {
               minimumFractionDigits: 0,
           }).format(product.comparePrice)
         : null;
-
-    const outOfStock = product.stock <= 0;
-    const isSimple = product.type === 'simple' && product.variantId;
-
-    const handleAddToCart = () => {
-        if (isSimple && product.variantId) {
-            addToCart(product.variantId, product.id, product.price, 1);
-        } else {
-            router.push(`/products/${product.slug}`);
-        }
-    };
 
     return (
         <div className="group cursor-pointer block">
@@ -53,26 +82,6 @@ export function ProductCard({ product }: ProductCardProps) {
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-text-muted text-[13px]">
                             No Image
-                        </div>
-                    )}
-                    {outOfStock && (
-                        <div className="absolute inset-0 bg-surface/80 flex items-center justify-center">
-                            <span className="bg-error-light text-error-foreground text-xs font-medium px-3 py-1 rounded-full">
-                                Out of Stock
-                            </span>
-                        </div>
-                    )}
-                    {!outOfStock && (
-                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out">
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    handleAddToCart();
-                                }}
-                                className="w-full bg-surface-inverse text-text-inverse text-[12px] font-medium py-2.5 rounded-md hover:bg-surface-inverse-hover transition-colors"
-                            >
-                                {isSimple ? 'Add To Cart' : 'Select Options'}
-                            </button>
                         </div>
                     )}
                 </div>

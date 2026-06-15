@@ -1,16 +1,33 @@
+'use client';
+
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import type { ShopProduct } from '@/types/shop';
+import { useAddToCart } from '@/hooks/useAddToCart';
 
 type FeaturedProductProps = {
     product: ShopProduct;
 };
 
 export function FeaturedProduct({ product }: FeaturedProductProps) {
+    const router = useRouter();
+    const { addToCart } = useAddToCart();
+
     const formattedPrice = new Intl.NumberFormat('en-BD', {
         style: 'currency',
         currency: 'BDT',
         minimumFractionDigits: 0,
     }).format(product.price);
+
+    const isSimple = product.type === 'simple' && product.variantId;
+
+    const handleAddToCart = () => {
+        if (isSimple && product.variantId) {
+            addToCart(product.variantId, product.id, product.price, 1);
+        } else {
+            router.push(`/products/${product.slug}`);
+        }
+    };
 
     return (
         <section className="bg-background py-12 lg:py-16">
@@ -49,7 +66,10 @@ export function FeaturedProduct({ product }: FeaturedProductProps) {
                                 {product.description}
                             </p>
                         )}
-                        <button className="border border-text-primary text-text-primary px-6 py-2.5 text-sm font-medium hover:bg-surface-inverse hover:text-text-inverse transition-colors rounded-md">
+                        <button
+                            onClick={handleAddToCart}
+                            className="border border-text-primary text-text-primary px-6 py-2.5 text-sm font-medium hover:bg-surface-inverse hover:text-text-inverse transition-colors rounded-md"
+                        >
                             Add To Cart
                         </button>
                     </div>

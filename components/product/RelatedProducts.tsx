@@ -3,14 +3,35 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { ShopProduct } from '@/types/shop';
+import type { RelatedProduct } from '@/types/product';
 import { useAddToCart } from '@/hooks/useAddToCart';
 
-type ProductCardProps = {
-    product: ShopProduct;
+type RelatedProductsProps = {
+    products: RelatedProduct[];
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function RelatedProducts({ products }: RelatedProductsProps) {
+    if (products.length === 0) return null;
+
+    return (
+        <section className="mt-16">
+            <h2 className="font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary text-center mb-2">
+                Related Products
+            </h2>
+            <p className="text-[13px] text-text-secondary text-center mb-8">
+                &ldquo;Discover the Most Wanted Styles — Shop Our Bestselling Picks Now!&rdquo;
+            </p>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                {products.map((product) => (
+                    <RelatedProductCard key={product.id} product={product} />
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function RelatedProductCard({ product }: { product: RelatedProduct }) {
     const router = useRouter();
     const { addToCart } = useAddToCart();
 

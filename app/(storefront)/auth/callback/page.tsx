@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { mergeGuestCartOnLogin } from '@/lib/cart/merge';
 
 function AuthCallbackInner() {
     const router = useRouter();
@@ -12,8 +13,9 @@ function AuthCallbackInner() {
     useEffect(() => {
         const supabase = createClient();
 
-        supabase.auth.onAuthStateChange((_event, session) => {
+        supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session) {
+                await mergeGuestCartOnLogin();
                 const redirectTo = searchParams.get('redirect') || '/account';
                 router.push(redirectTo);
                 router.refresh();

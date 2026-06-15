@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { mergeGuestCartOnLogin } from '@/lib/cart/merge';
 
 type SignInMode = 'password' | 'magic-link';
 
@@ -61,6 +62,7 @@ function SignInForm() {
             return;
         }
 
+        await mergeGuestCartOnLogin();
         router.push(redirectTo);
         router.refresh();
     };

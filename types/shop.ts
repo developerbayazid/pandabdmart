@@ -2,6 +2,8 @@ export type ShopProduct = {
     id: string;
     slug: string;
     name: string;
+    type: 'simple' | 'variable';
+    variantId: string | null;
     categorySlug: string;
     categoryName: string;
     brandSlug: string;

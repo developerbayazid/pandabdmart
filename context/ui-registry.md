@@ -284,11 +284,186 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 ### Storefront — Product Detail
 
-<!-- ImageGallery, VariantSelector, StockBadge, ReviewsList, ReviewForm, RelatedProducts -->
+#### ProductDetailPage
+- **File:** `components/product/ProductDetailPage.tsx`
+- **Classes:**
+  - Breadcrumb: `flex items-center gap-2 text-[13px] text-text-secondary mb-6` with active `text-text-primary font-medium`
+  - Product title: `font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal leading-[1.3] text-text-primary`
+  - Current price: `text-[24px] font-semibold text-text-primary`
+  - Compare price: `text-[18px] text-text-muted line-through`
+  - Short description: `text-[14px] text-text-secondary leading-relaxed`
+  - Add to Cart button: `flex-1 h-10 bg-surface-inverse text-text-inverse text-[13px] font-medium rounded-md hover:bg-surface-inverse-hover disabled:opacity-50`
+  - Wishlist button: `w-10 h-10 flex items-center justify-center border rounded-md` active `border-error text-error`, inactive `border-border text-text-secondary hover:border-border-strong`
+  - Stock status dot: `w-2 h-2 rounded-full` colors: `bg-success` (in stock), `bg-warning` (low), `bg-error` (out)
+  - SKU/Category row: `text-[13px] text-text-secondary` with label `font-medium text-text-primary`
+- **Props:** `product: ProductDetail`, `relatedProducts: RelatedProduct[]`
+- **Behavior:** Client component orchestrating variant selection, quantity, stock display, wishlist toggle, realtime stock updates, recently viewed saving. Updates price/stock/SKU based on selected variant attributes. Subscribes to Supabase Realtime for live stock/price changes via `useRealtimeStock`. Saves current product to localStorage recently viewed on mount.
+
+#### ProductImageGallery
+- **File:** `components/product/ProductImageGallery.tsx`
+- **Classes:**
+  - Thumbnail: `w-[80px] h-[100px] rounded-lg overflow-hidden border transition-colors` active `border-text-primary`, inactive `border-border hover:border-border-strong`
+  - Main image: `flex-1 relative h-[500px] bg-surface-secondary rounded-lg overflow-hidden`
+- **Props:** `variants: ProductVariant[]`, `productName: string`
+- **Behavior:** Vertical thumbnail strip on left, main image on right. Click thumbnail to switch main image. Deduplicates images across variants. Sorts primary images first.
+
+#### VariantSelector
+- **File:** `components/product/VariantSelector.tsx`
+- **Classes:**
+  - Label: `text-[13px] font-medium text-text-primary block mb-2`
+  - Pill button: `min-w-[48px] h-10 px-3 text-[13px] font-medium rounded-md border transition-colors` selected `bg-surface-inverse text-text-inverse border-surface-inverse`, unselected `bg-surface text-text-primary border-border hover:border-border-strong`
+- **Props:** `attributes: ProductAttribute[]`, `variants: ProductVariant[]`, `selectedAttributes: Record<string, string>`, `onAttributeChange: (attributeId, valueId) => void`
+- **Behavior:** Renders attribute groups (Size, Color, etc.) as rows of selectable pill buttons. Toggle selection on click.
+
+#### QuantitySelector
+- **File:** `components/product/QuantitySelector.tsx`
+- **Classes:**
+  - Container: `flex items-center border border-border rounded-md`
+  - Buttons: `w-10 h-10 flex items-center justify-center text-text-secondary hover:text-text-primary disabled:opacity-50`
+  - Value: `w-10 h-10 flex items-center justify-center text-[13px] font-medium text-text-primary border-x border-border`
+- **Props:** `quantity: number`, `onChange: (quantity) => void`, `max?: number`
+- **Behavior:** +/- stepper with min 1, optional max. Disables buttons at boundaries.
+
+#### ProductTabs
+- **File:** `components/product/ProductTabs.tsx`
+- **Classes:**
+  - Tab header: `flex border-b border-border`
+  - Tab button: `pb-3 text-[14px] font-medium transition-colors relative` active `text-text-primary` with underline `h-0.5 bg-text-primary`, inactive `text-text-secondary hover:text-text-primary`
+  - Tab badge: `ml-1 text-text-muted text-[12px]`
+  - Tab content: `pt-6 space-y-3`
+  - Spec row: `text-[14px] text-text-primary` with label `font-semibold capitalize` and value `text-text-secondary`
+- **Props:** `product: ProductDetail`
+- **Behavior:** Three tabs: Product description (shows specs as key-value list, falls back to description), Product info (shows brand, category, type, SKU, variant count), and Reviews (rating summary + review list + review form). Review tab shows count badge when > 0.
+
+#### SizeChart
+- **File:** `components/product/SizeChart.tsx`
+- **Classes:**
+  - Toggle: `text-[14px] font-semibold text-text-primary hover:text-text-secondary transition-colors`
+  - Table header: `bg-surface-tertiary px-4 py-3 text-[12px] font-medium uppercase tracking-wide text-text-secondary`
+  - Table row: `hover:bg-surface-secondary transition-colors px-4 py-3 text-[14px] text-text-primary`
+- **Props:** `data?: SizeRow[]`, `title?: string`
+- **Behavior:** Collapsible size chart table. Default data shows standard size measurements (Chest Round, Length, Shoulder, Sleeve).
+
+#### ReviewSummary
+- **File:** `components/product/ReviewSummary.tsx`
+- **Classes:**
+  - Average rating: `text-[40px] lg:text-[48px] font-semibold text-text-primary leading-none`
+  - Stars: `text-[14px]` filled `text-text-primary`, empty `text-border`
+  - Review count: `text-[12px] text-text-muted`
+  - Distribution bar: `flex-1 h-1.5 bg-surface-secondary rounded-full overflow-hidden` with fill `h-full bg-text-primary rounded-full`
+  - Distribution label: `text-[12px] text-text-secondary w-12`
+  - Distribution count: `text-[12px] text-text-muted w-6 text-right`
+  - Empty state: `text-center py-6` with `text-[14px] text-text-secondary`
+- **Props:** `rating: number`, `reviewCount: number`, `reviews: ProductReview[]`
+- **Behavior:** Shows large average rating with stars, 5-star distribution bar chart, or "No reviews yet" empty state. Flex row on desktop, stacked on mobile.
+
+#### ReviewList
+- **File:** `components/product/ReviewList.tsx`
+- **Classes:**
+  - List container: `space-y-4`
+  - Review card: `border border-border rounded-lg p-4`
+  - User name: `text-[13px] font-medium text-text-primary`
+  - Stars: `text-[12px]` filled `text-text-primary`, empty `text-border`
+  - Date: `text-[12px] text-text-muted`
+  - Comment: `text-[14px] text-text-secondary leading-relaxed`
+- **Props:** `reviews: ProductReview[]`
+- **Behavior:** Renders individual review cards sorted by most recent. Shows user name, 5-star rating, date, and comment text. Returns null when empty.
+
+#### ReviewForm
+- **File:** `components/product/ReviewForm.tsx`
+- **Classes:**
+  - Container (auth-gated): `border border-border rounded-lg p-4`
+  - Loading skeleton: `h-20 animate-pulse bg-surface-secondary rounded-md`
+  - Guest message: `text-[14px] text-text-secondary mb-2` with CTA `border border-text-primary text-text-primary px-4 py-1.5 text-[13px] font-medium hover:bg-surface-inverse hover:text-text-inverse rounded-md`
+  - Success: `bg-success-light` with `text-[14px] text-success-foreground font-medium`
+  - Form heading: `text-[14px] font-medium text-text-primary mb-3`
+  - Error: `text-[13px] text-error mb-3 bg-error-light px-3 py-2 rounded-md`
+  - Star selector: `text-[20px]` active `text-text-primary`, inactive `text-border hover:text-text-primary`
+  - Label: `block text-[12px] font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Textarea: `w-full bg-surface border border-border rounded-md px-3 py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary resize-none`
+  - Submit button: `bg-surface-inverse text-text-inverse text-[13px] font-medium px-5 py-2 rounded-md hover:bg-surface-inverse-hover disabled:opacity-50 transition-colors`
+- **Props:** `productSlug: string`, `productId: string`
+- **Behavior:** Three states: loading (skeleton), guest (Sign In link with redirect param), form (star selector + comment textarea + Submit). Calls `submitReviewAction` server action. Shows success message on completion. Validates rating selected and comment length ≥10.
+
+#### RecentlyViewed
+- **File:** `components/product/RecentlyViewed.tsx`
+- **Classes:** Same card pattern as RelatedProducts (4-column grid, serif heading + subtitle, image card with hover zoom, category label, product name, price with compare-at strikethrough)
+- **Props:** `currentProductId: string`
+- **Behavior:** Reads from localStorage (`pandabdmart_recently_viewed`), filters out current product, shows max 6 items. Returns null when empty. ProductDetailPage saves current product to localStorage on mount.
+
+#### RelatedProducts
+- **File:** `components/product/RelatedProducts.tsx`
+- **Classes:**
+  - Section heading: `font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary text-center mb-2`
+  - Subtitle: `text-[13px] text-text-secondary text-center mb-8`
+  - Card image: `w-full h-[220px] lg:h-[280px] bg-surface-secondary rounded-lg overflow-hidden group-hover:scale-105 transition-transform duration-300`
+  - Card name: `text-[13px] font-medium text-text-primary leading-snug line-clamp-2`
+  - Card price: `text-[13px] font-semibold text-text-primary`
+- **Props:** `products: RelatedProduct[]`
+- **Behavior:** 4-column grid of related product cards. Uses same product card pattern as homepage/shop. Links to product detail pages.
+
+#### FaqSection
+- **File:** `components/product/FaqSection.tsx`
+- **Classes:**
+  - Section heading: `font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary text-center mb-2`
+  - Subtitle: `text-[13px] text-text-secondary text-center mb-8`
+  - Accordion item: `border border-border rounded-lg overflow-hidden`
+  - Question button: `w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface-secondary transition-colors`
+  - Question text: `text-[14px] font-medium text-text-primary`
+  - Toggle icon: `text-[16px] text-text-secondary ml-4 shrink-0` (`+` / `−`)
+  - Answer: `px-5 pb-4 text-[14px] text-text-secondary leading-relaxed`
+- **Props:** `items?: FaqItem[]`
+- **Behavior:** Accordion with single-open behavior. 5 default FAQ questions about sizes, tailoring, payment, delivery, returns.
 
 ### Cart & Checkout
 
-<!-- CartItemRow, OrderSummary, CouponInput, ShippingForm, ShippingZoneSelector, PaymentMethodSelector, MFSInstructions -->
+#### CartItemRow
+- **File:** `components/cart/CartItemRow.tsx`
+- **Classes:**
+  - Image container: `shrink-0 w-24 h-24 lg:w-28 lg:h-28 rounded-lg overflow-hidden bg-surface-secondary`
+  - Product name link: `text-[14px] font-medium text-text-primary leading-snug hover:text-text-secondary transition-colors line-clamp-2`
+  - Variant attributes: `text-[12px] text-text-muted`
+  - SKU: `text-[12px] text-text-muted`
+  - Quantity stepper: `flex items-center border border-border rounded-md` with `w-8 h-8` buttons and `border-x` value
+  - Line total: `text-[14px] font-semibold text-text-primary`
+  - Compare price: `text-[12px] text-text-muted line-through`
+  - Unit price: `text-[12px] text-text-muted`
+  - Remove button: `p-1.5 text-text-muted hover:text-error transition-colors`
+  - Low stock warning: `text-[12px] text-warning`
+- **Props:** `item: CartItem`, `onQuantityChange: (variantId, quantity) => void`, `onRemove: (variantId) => void`
+- **Behavior:** Renders a single cart item with quantity stepper (min 1, max stock), remove button, and pricing. Links to product detail page.
+
+#### CartSummary
+- **File:** `components/cart/CartSummary.tsx`
+- **Classes:**
+  - Card: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Title: `text-base font-semibold text-text-primary leading-6`
+  - Coupon input: `w-full bg-surface border border-border rounded-md pl-9 pr-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Apply button: `bg-surface border border-border text-text-primary px-4 py-2 text-[13px] font-medium rounded-md hover:bg-surface-secondary disabled:opacity-50`
+  - Subtotal: `text-[13px] text-text-secondary` / `text-[13px] font-medium text-text-primary`
+  - Total: `text-[16px] font-semibold text-text-primary` / `text-[20px] font-semibold text-text-primary`
+  - Checkout button: `block w-full bg-surface-inverse text-text-inverse text-center rounded-md px-4 py-3 text-[14px] font-medium hover:bg-surface-inverse-hover`
+- **Props:** `summary: CartSummaryData`, `onCouponApply: (code: string) => void`
+- **Behavior:** Order summary sidebar with promo code input, subtotal, shipping placeholder, grand total, and Proceed to Checkout button. Coupon display shows discount amount when applied.
+
+#### EmptyCart
+- **File:** `components/cart/EmptyCart.tsx`
+- **Classes:**
+  - Icon circle: `w-16 h-16 rounded-full bg-surface-secondary flex items-center justify-center`
+  - Icon: `h-8 w-8 text-text-muted`
+  - Text: `text-[14px] text-text-secondary` / `text-[13px] text-text-muted`
+  - CTA: `bg-surface border border-border text-text-primary px-6 py-2.5 text-[13px] font-medium rounded-md hover:bg-surface-secondary`
+- **Props:** none
+- **Behavior:** Empty state with ShoppingCart icon, descriptive text, and Continue Shopping link to /shop.
+
+#### CartPage
+- **File:** `components/cart/CartPage.tsx` (client), `app/(storefront)/cart/page.tsx` (server)
+- **Classes:** Same UI as Feature 10
+- **Props:** `initialItems: CartItem[] | null`
+- **Behavior:** `app/(storefront)/cart/page.tsx` is a server component — fetches authenticated cart items via `getCartItems()`, passes `initialItems` to `CartPageClient`. `CartPageClient` uses `useCart` hook for dual guest/auth cart management. Guest: items resolved from zustand store. Auth: items from server, mutations via server actions with optimistic UI updates. Applies coupons via `validateCouponAction` with toast feedback. Returns empty state when items.length === 0.
+
+<!-- useCart, cart.store, cart.repository, cart.service, cart.actions, cart/merge API -->
+<!-- OrderSummary, ShippingForm, ShippingZoneSelector, PaymentMethodSelector, MFSInstructions -->
 
 ### Order Tracking
 
@@ -522,6 +697,33 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 - Status badge colors are canonical — never invent new mappings per-component
 - Table rows never use alternating colors — white-only with `hover:bg-surface-secondary`
 - All interactive elements have `disabled:opacity-50` for disabled states
+
+## Patterns — Product Detail Page (Imprinted 2026-06-15)
+
+| Property | Class | Used By |
+|----------|-------|---------|
+| Product detail title (serif) | `font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal leading-[1.3] text-text-primary` | ProductDetailPage |
+| Product current price | `text-[24px] font-semibold text-text-primary` | ProductDetailPage |
+| Product compare price | `text-[18px] text-text-muted line-through` | ProductDetailPage |
+| Variant pill (selected) | `min-w-[48px] h-10 px-3 text-[13px] font-medium rounded-md bg-surface-inverse text-text-inverse border-surface-inverse` | VariantSelector |
+| Variant pill (unselected) | `min-w-[48px] h-10 px-3 text-[13px] font-medium rounded-md bg-surface text-text-primary border-border hover:border-border-strong` | VariantSelector |
+| Quantity stepper | `flex items-center border border-border rounded-md` with `w-10 h-10` buttons and value | QuantitySelector |
+| Stock status dot | `w-2 h-2 rounded-full` + `bg-success`/`bg-warning`/`bg-error` | ProductDetailPage |
+| Section heading (serif, centered) | `font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary text-center mb-2` | RelatedProducts, FaqSection |
+| Section subtitle (centered) | `text-[13px] text-text-secondary text-center mb-8` | RelatedProducts, FaqSection |
+| Accordion item | `border border-border rounded-lg overflow-hidden` | FaqSection |
+| Accordion question | `w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface-secondary transition-colors` | FaqSection |
+
+**Pattern notes:**
+- Product detail page uses a two-column layout (55% image gallery, 45% product info) on desktop, stacked on mobile
+- Image gallery uses vertical thumbnail strip (80px wide) on the left of the main image
+- Variant selectors use pill buttons (not dropdowns) for Size, Color, etc.
+- Quantity selector is a compact inline stepper (not a dropdown)
+- Add to Cart button is full-width black (inverted) inside the quantity row
+- Wishlist heart icon is a separate bordered button next to Add to Cart
+- Stock status uses colored dots (8px) with text labels — never badges
+- Related Products and FAQ sections share the same centered serif heading + subtitle pattern
+- Size chart is a collapsible table following the same table pattern as admin tables
 
 Likely early candidates for shared patterns in this project:
 

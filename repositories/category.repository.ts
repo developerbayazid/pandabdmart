@@ -104,10 +104,14 @@ function mapRowToProduct(row: Record<string, unknown>): ShopProduct {
         })),
     );
 
+    const primaryVariantId = variants.length === 1 ? (variants[0].id as string) : null;
+
     return {
         id: row.id as string,
         slug: row.slug as string,
         name: row.name as string,
+        type: (row.type as 'simple' | 'variable') ?? 'simple',
+        variantId: primaryVariantId,
         categorySlug: category.slug,
         categoryName: category.name,
         brandSlug: brand.slug,
@@ -146,7 +150,7 @@ export async function getCategoryProducts(
     let query = supabase
         .from('products')
         .select(
-            `id, name, slug, description, created_at,
+            `id, name, slug, type, description, created_at,
             category:categories!inner(id, name, slug),
             brand:brands!inner(id, name, slug),
             variants:product_variants(id, price, compare_price, stock, reserved_stock, sold_count, is_active, variant_images(url, is_primary))`,
