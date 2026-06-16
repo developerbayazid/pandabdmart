@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Heart } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import type { ProductDetail, ProductVariant } from '@/types/product';
 import { ProductImageGallery } from './ProductImageGallery';
 import { VariantSelector } from './VariantSelector';
@@ -14,6 +14,7 @@ import { FaqSection } from './FaqSection';
 import { RecentlyViewed } from './RecentlyViewed';
 import { useRealtimeStock } from '@/hooks/useRealtimeStock';
 import { useAddToCart } from '@/hooks/useAddToCart';
+import { useWishlist } from '@/hooks/useWishlist';
 import type { RelatedProduct } from '@/types/product';
 
 type ProductDetailPageProps = {
@@ -24,7 +25,6 @@ type ProductDetailPageProps = {
 export function ProductDetailPage({ product, relatedProducts }: ProductDetailPageProps) {
     const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
     const [quantity, setQuantity] = useState(1);
-    const [isWishlisted, setIsWishlisted] = useState(false);
     const [liveVariants, setLiveVariants] = useState<ProductVariant[]>(product.variants);
 
     const handleVariantUpdate = useCallback((updated: ProductVariant[]) => {
@@ -89,6 +89,8 @@ export function ProductDetailPage({ product, relatedProducts }: ProductDetailPag
     const displayReserved = selectedVariant?.reservedStock ?? 0;
     const availableStock = Math.max(0, displayStock - displayReserved);
     const displaySku = selectedVariant?.sku ?? liveVariants[0]?.sku ?? 'N/A';
+
+    const { isWishlisted, isLoading: wishlistLoading, toggle: toggleWishlist } = useWishlist(selectedVariant?.id);
 
     const handleAttributeChange = (attributeId: string, valueId: string) => {
         setSelectedAttributes((prev) => ({
@@ -210,18 +212,23 @@ export function ProductDetailPage({ product, relatedProducts }: ProductDetailPag
                                     : 'Add To Cart'}
                         </button>
                         <button
-                            onClick={() => setIsWishlisted(!isWishlisted)}
+                            onClick={toggleWishlist}
+                            disabled={wishlistLoading || !selectedVariant}
                             className={`w-10 h-10 flex items-center justify-center border rounded-md transition-colors ${
                                 isWishlisted
                                     ? 'border-error text-error'
                                     : 'border-border text-text-secondary hover:border-border-strong'
-                            }`}
-                            aria-label="Add to wishlist"
+                            } disabled:opacity-50`}
+                            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
-                            <Heart
-                                className="w-4 h-4"
-                                fill={isWishlisted ? 'currentColor' : 'none'}
-                            />
+                            {wishlistLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Heart
+                                    className="w-4 h-4"
+                                    fill={isWishlisted ? 'currentColor' : 'none'}
+                                />
+                            )}
                         </button>
                     </div>
 

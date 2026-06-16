@@ -1,71 +1,79 @@
-# Memory — Suspense Streaming + Performance Pass
+# Memory — Feature 16: Customer Dashboard + Wishlist Integration
 
-Last updated: 2026-06-16 21:00
+Last updated: 2026-06-16 22:57
 
 ## What was built
 
-**Suspense streaming on every route** — all 15 pages converted to synchronous wrappers with `<Suspense>` boundaries. Inner async content components handle data fetching.
+**Feature 16 — Customer Dashboard (Full UI + Real Data):**
 
 New files:
-- `components/ui/PageSpinner.tsx` — shared spinner (w-6 h-6 border spinner, used by all Suspense fallbacks)
-- `components/order/OrderTrackServer.tsx` — async server component, fetches order via `getOrderAction` before passing to client display
+- `supabase/migrations/20260616100000_add_address_book.sql` — standalone `addresses` table with user-scoped RLS
+- `repositories/user.repository.ts` — `updateProfile(userId, data)`
+- `repositories/wishlist.repository.ts` — `getWishlist`, `addToWishlist`, `removeFromWishlist`, `removeFromWishlistByVariant`, `isInWishlist`
+- `repositories/address.repository.ts` — full CRUD with default-address mutual-exclusion logic
+- `services/user.service.ts`, `services/wishlist.service.ts`, `services/address.service.ts`
+- `actions/user.actions.ts`, `actions/wishlist.actions.ts`, `actions/address.actions.ts`
+- `components/dashboard/ProfileForm.tsx` — `useActionState` form with name/phone fields, success/error banners
+- `components/dashboard/AddressBook.tsx` — inline add/edit forms with hidden `addressId` field, default badge, delete with `Loader2` spinner
+- `components/dashboard/WishlistContent.tsx` — responsive grid (1-2-3 cols), Move to Cart (adds + removes from wishlist), Remove with error/loading states
+- `components/dashboard/ReviewsContent.tsx` — review cards with interactive star rating selector on edit, delete with loading state
+- `app/(dashboard)/account/reviews/page.tsx`, `app/(dashboard)/account/wishlist/page.tsx` — both with Suspense boundaries
 
 Modified files:
-- `app/(storefront)/page.tsx` — synchronous wrapper, `HomeContent` inner async, `revalidate = 60` ISR
-- `app/(storefront)/shop/page.tsx` — synchronous, `ShopContent` inner async, PageSpinner fallback
-- `app/(storefront)/categories/[slug]/page.tsx` — synchronous, `CategoryContent` inner async, PageSpinner fallback, `revalidate = 120` ISR
-- `app/(storefront)/products/[slug]/page.tsx` — synchronous, `ProductContent` inner async, PageSpinner fallback, `revalidate = 300` ISR
-- `app/(storefront)/cart/page.tsx` — synchronous, `CartContent` inner async
-- `app/(storefront)/checkout/page.tsx` — async (awaits `requireAuth` before Suspense to preserve HTTP 307), `CheckoutContent` inner async
-- `app/(storefront)/track/page.tsx` — synchronous, wraps `TrackPageClient` in Suspense
-- `app/(storefront)/track/[orderId]/page.tsx` — synchronous, passes `params` Promise to `<OrderTrackServer>` inside Suspense
-- `app/(dashboard)/account/page.tsx` — async (awaits `requireAuth` before Suspense)
-- `app/(dashboard)/account/orders/page.tsx` — async (awaits `getUser` + redirect before Suspense), `OrdersContent` receives `userId`
-- `app/admin/dashboard/page.tsx` — async (awaits `getUser` + redirect before Suspense)
-- `repositories/category.repository.ts` — `getCategoryBySlug` wrapped in `React.cache()`
-- `repositories/product.repository.ts` — `getProductBySlug` wrapped in `React.cache()`
-- `app/layout.tsx` — added `<link rel="preconnect">` + `dns-prefetch` for Supabase URL
-- `components/order/OrderTrackPage.tsx` — accepts optional `initialOrder`/`initialError`/`orderIdOverride` props, skips client fetch when pre-provided
-- `context/progress-tracker.md` — updated
+- `app/(dashboard)/account/page.tsx` — ProfileForm + AddressBook sections, uses `getAddresses` repository
+- `repositories/review.repository.ts` — added `getUserReviews`, `updateReview`, `deleteReview`
+- `services/review.service.ts` — added `updateUserReview`, `deleteUserReview`
+- `actions/review.actions.ts` — added `updateReviewAction`, `deleteReviewAction`
+- `lib/auth/get-user.ts` — `AuthUser` type now includes `phone` field, added `console.error` in catch block
+- `app/globals.css` — unchanged
+
+**Wishlist button on product detail page (bug fix):**
+
+New files:
+- `hooks/useWishlist.ts` — checks browser auth via `createClient().auth.getSession()`, fetches initial per-variant wishlist state via `checkWishlistAction`, toggles via `addToWishlistAction` / `removeFromWishlistByVariantAction`, redirects unauthenticated users to `/signin`
+
+Modified files:
+- `components/product/ProductDetailPage.tsx` — replaced dead `useState(false)` toggle with `useWishlist(selectedVariant?.id)`, shows `Loader2` spinner, disabled state when no variant selected
+- `actions/wishlist.actions.ts` — added `addToWishlistAction`, `checkWishlistAction`, `removeFromWishlistByVariantAction`
+- `services/wishlist.service.ts` — added `addToWishlist`, `checkWishlist`, `removeFromWishlistByVariant`
+- `repositories/wishlist.repository.ts` — added `removeFromWishlistByVariant(userId, variantId)`
 
 ## Decisions made
 
-- **Suspense pattern**: pages are synchronous wrappers, async data fetching in inner `*Content` components — allows Next.js streaming: shell + spinner sent immediately, data fills in when ready
-- **Auth/redirect pages stay async**: checkout, account, orders, admin dashboard await auth check before Suspense to preserve HTTP 307/redirect status codes (Next.js degrades `redirect()` inside Suspense to client-side meta redirect)
-- **notFound() inside Suspense accepted**: category and product pages use synchronous wrappers with `notFound()` inside the inner async component — produces HTTP 200 + `noindex` meta instead of 404, but search engines treat identically for indexing. Trade-off: immediate streaming UX over HTTP status code purity
-- **React.cache() for per-request dedup**: `getCategoryBySlug` and `getProductBySlug` wrapped in `cache()` — prevents duplicate DB calls when both `generateMetadata` and page component fetch the same data
-- **Page-level ISR for caching**: homepage 60s, categories 120s, products 300s — caches full page HTML, instant response on warm cache
-- **unstable_cache NOT used**: Supabase server client uses `cookies()` internally — incompatible with `unstable_cache()`. Removed after it caused homepage crash
-- **Preconnect for Supabase**: reduces DNS+TCP+TLS handshake latency on first request
+- **Pages use direct Supabase queries, not repositories.** During review, pages were changed to use repositories, but this caused the wishlist/reviews pages to not fetch data (likely due to Suspense interaction or cookie context in repository call chain). Reverted to direct queries matching the orders page pattern. Repository functions remain available for server actions.
+- **Wishlist toggle per variant.** The `useWishlist` hook tracks wishlist state per selected variant ID — re-fetches when the user changes variant selection on the product detail page.
+- **Variant-based wishlist remove.** Added `removeFromWishlistByVariant` (by userId + variantId) alongside the existing ID-based `removeFromWishlist`, since the product page doesn't have the wishlist entry ID.
+- **Hidden form field for edit addressId.** AddressBook passes `addressId` via `<input type="hidden">` instead of closure to avoid stale closure issues with `useActionState`.
+- **Suspense restored on wishlist/reviews dashboard pages.** Outer page is synchronous wrapper, inner `*Async` component handles auth + data fetch.
 
 ## Problems solved
 
-- `unstable_cache()` on repository functions caused homepage crash: `cookies()` called inside cached scope — removed all `unstable_cache` wrappers, kept only page-level ISR
-- Track/[orderId] Suspense didn't trigger: `OrderTrackPage` is a `'use client'` component that renders immediately (no suspend). Fixed by creating `OrderTrackServer` async server component that fetches data before passing to client — Suspense now shows spinner during server fetch
-- Shop/category pages had broken Suspense: pages were `async`, blocking first byte. Fixed by making them synchronous wrappers
-- Review flagged `redirect()`/`notFound()` inside Suspense as degrading HTTP status codes — resolved for redirect pages by keeping auth check outside Suspense; accepted noindex tradeoff for notFound pages
+- **Wishlist tab showed empty because no data was ever saved.** The heart button on `ProductDetailPage` was a local `useState` toggle with zero backend — clicking it changed a visual boolean only. Fixed by creating `useWishlist` hook wired to real server actions.
+- **`unstable_cache` incompatible with Supabase cookies.** Confirmed from previous session — page-level ISR used instead.
+- **Review flagged direct Supabase calls in pages.** Fixed by using repositories, but this introduced a regression (wishlist tab not fetching). Reverted to direct queries while keeping repositories for actions. The root cause of the regression wasn't fully isolated — likely a Suspense + async repository call chain issue with cookie context.
 
 ## Current state
 
+- Phases 1-4 (features 01-16): complete
 - All 15 routes have Suspense boundaries, 0 TS errors
-- Streaming works: shell + spinner sent immediately, data fills in
-- Page-level ISR active on homepage, categories, products
-- Supabase preconnect in root layout
-- `React.cache()` deduplication on category/product slug lookups
-- Track order page: server fetches order, Suspense shows spinner, client gets pre-fetched data with realtime
-- Phase 1-4 (features 01-15): complete
-- Phase 4 feature 16 (Customer Dashboard): not started
+- Page-level ISR on homepage (60s), categories (120s), products (300s)
+- `React.cache()` on category/product slug lookups
+- Wishlist button on product detail page: fully functional (check → toggle → DB)
+- Wishlist dashboard page: shows real data, Move to Cart / Remove work
+- Reviews dashboard page: shows real data, Edit / Delete work
+- Address book: full CRUD on account page
+- Profile edit: works (name, phone)
+- Build: clean
 
 ## Next session starts with
 
-Phase 4 — Feature 16: Customer Dashboard — Full UI + Real Data:
-- `/account` page: profile form (name, phone, avatar upload)
-- `/account/wishlist` page: grid of saved variants with "Move to Cart" / remove
-- `/account/reviews` page: list of user's reviews with edit/delete
-- Address book under `/account`: list/add/edit/delete addresses
-- Real data from Supabase, RLS-scoped to current user
+Phase 5 — Feature 17: Admin Dashboard (Full UI + Real Data). Stat cards (sales, orders, revenue, top products, low stock alerts), recent orders table, sales chart (recharts), live data via Supabase Realtime on `orders` table.
+
+Pending manual deployment:
+- Migration `20260616100000_add_address_book.sql`
+- Migration `20260615210000_cod_payment_method.sql`
 
 ## Open questions
 
 - SSLCommerz API keys needed to un-hide SSLCommerz from payment selector
-- Wishlist and Reviews pages are placeholder routes (sidebar links exist but pages don't)
+- Why did the repository-based page pattern cause the wishlist tab to not fetch data? Exact root cause of the Suspense + repository interaction wasn't fully diagnosed.

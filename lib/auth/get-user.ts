@@ -6,6 +6,7 @@ export type AuthUser = {
     email: string | undefined;
     role: 'admin' | 'shop_manager' | 'customer';
     fullName: string | null;
+    phone: string | null;
 };
 
 export async function getUser(): Promise<AuthUser | null> {
@@ -19,19 +20,22 @@ export async function getUser(): Promise<AuthUser | null> {
 
     let role: AuthUser['role'] = 'customer';
     let fullName: string | null = null;
+    let phone: string | null = null;
 
     try {
         const { data: profile } = await supabase
             .from('users')
-            .select('role, full_name')
+            .select('role, full_name, phone')
             .eq('id', user.id)
             .single();
 
         if (profile) {
             role = profile.role ?? 'customer';
             fullName = profile.full_name ?? null;
+            phone = profile.phone ?? null;
         }
-    } catch {
+    } catch (err) {
+        console.error('[lib/auth/get-user] Failed to fetch user profile:', err);
         role = 'customer';
     }
 
@@ -40,6 +44,7 @@ export async function getUser(): Promise<AuthUser | null> {
         email: user.email,
         role,
         fullName,
+        phone,
     };
 }
 

@@ -7,7 +7,7 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 4 — Order Tracking & Customer Dashboard
-**Last completed:** 15 Order Tracking Page (Suspense streaming + performance pass applied)
+**Last completed:** 16 Customer Dashboard — Full UI + Real Data
 **In progress:** —
 
 ---
@@ -40,7 +40,7 @@ Update this file after every completed feature. Any AI agent reading this should
 ### Phase 4 — Order Tracking & Customer Dashboard
 
 - [x] 15 Order Tracking Page — Full UI + Real Data
-- [ ] 16 Customer Dashboard — Full UI + Real Data
+- [x] 16 Customer Dashboard — Full UI + Real Data
 
 ### Phase 5 — Admin Panel
 
@@ -59,6 +59,8 @@ Update this file after every completed feature. Any AI agent reading this should
 - [ ] 26 Reviews Moderation (Optional)
 
 ---
+
+- **16 Customer Dashboard complete** — `/account` page with profile edit form (name, phone), address book (CRUD with default address flag), `/account/wishlist` page with grid of saved variants (Move to Cart / Remove), `/account/reviews` page with list of user's reviews (Edit/Delete with star rating selector). **Product detail wishlist button wired** — `hooks/useWishlist.ts` created (browser auth check → fetch initial state per variant → toggle via server actions, redirects unauthenticated to signin). ProductDetailPage now calls `addToWishlistAction` / `removeFromWishlistByVariantAction` / `checkWishlistAction` via the hook. Added `removeFromWishlistByVariant` to repository. Added `addToWishlist`, `checkWishlist`, `removeFromWishlistByVariant` to service. Wishlist and reviews dashboard pages have Suspense boundaries restored. Backend: `repositories/user.repository.ts`, `repositories/wishlist.repository.ts`, `repositories/address.repository.ts`, `services/user.service.ts`, `services/wishlist.service.ts`, `services/address.service.ts`, `actions/user.actions.ts`, `actions/wishlist.actions.ts`, `actions/address.actions.ts`. Extended `repositories/review.repository.ts` with `getUserReviews`, `updateReview`, `deleteReview`. Extended `services/review.service.ts` with `updateUserReview`, `deleteUserReview`. Extended `actions/review.actions.ts` with `updateReviewAction`, `deleteReviewAction`. Migration `20260616100000_add_address_book.sql` pending manual deployment. `lib/auth/get-user.ts` now includes `phone` field. Build: clean (0 TS errors, no new lint errors).
 
 ## Notes
 

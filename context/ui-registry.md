@@ -617,8 +617,6 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 ### Customer Dashboard
 
-<!-- ProfileForm, AddressBook, OrderHistoryTable, WishlistGrid, ReviewsList -->
-
 #### DashboardLayout
 - **File:** `app/(dashboard)/layout.tsx`
 - **Classes:**
@@ -629,6 +627,69 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
   - Main content: `flex-1 p-8`
 - **Props:** `children: React.ReactNode`
 - **Behavior:** Server Component with `getUser()` auth check. Sidebar with Account, Orders, Wishlist, Reviews links.
+
+#### ProfileForm
+- **File:** `components/dashboard/ProfileForm.tsx`
+- **Classes:**
+  - Card: `bg-surface border border-border rounded-2xl p-6`
+  - Section heading: `text-base font-semibold text-text-primary mb-4`
+  - Form label: `block text-xs text-text-secondary uppercase tracking-wide mb-1`
+  - Success banner: `bg-success-light text-success-foreground text-sm p-3 rounded-md`
+  - Error banner: `bg-error-light text-error-foreground text-sm p-3 rounded-md`
+- **Props:** `user: AuthUser`
+- **Behavior:** Client Component using `useActionState` with `updateProfileAction`. Fields: fullName (required), phone (optional), email (disabled/readonly). Submit via Server Action.
+
+#### AddressBook
+- **File:** `components/dashboard/AddressBook.tsx`
+- **Classes:**
+  - Section heading: `text-base font-semibold text-text-primary`
+  - Address card: `bg-surface border border-border rounded-xl p-4 flex items-start justify-between gap-4`
+  - Default badge: `text-[10px] font-medium uppercase px-1.5 py-0.5 rounded-full bg-surface-inverse text-text-inverse`
+  - Action buttons: `p-1.5 text-text-muted hover:text-text-primary rounded-md hover:bg-surface-secondary transition-colors`
+  - Delete button: `p-1.5 text-text-muted hover:text-error rounded-md hover:bg-error-light transition-colors`
+  - Form container: `bg-surface-secondary border border-border rounded-xl p-4`
+  - Form grid: `grid grid-cols-2 gap-3`
+  - Checkbox label: `flex items-center gap-2 cursor-pointer`
+- **Props:** `addresses: Address[]`
+- **Behavior:** Client Component. Inline add/edit forms with validations. Delete via Server Action. Handles default address flag (mutually exclusive per user). ESC/click-outside not needed (inline forms stay visible until cancel/save).
+
+#### WishlistContent
+- **File:** `components/dashboard/WishlistContent.tsx`
+- **Classes:**
+  - Page heading: `font-serif text-[28px] font-normal text-text-primary mb-6`
+  - Empty state: `bg-surface border border-border rounded-2xl p-8 text-center` + CTA `border border-text-primary text-text-primary px-5 py-2 text-[13px] font-medium rounded-md hover:bg-surface-inverse hover:text-text-inverse`
+  - Grid: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`
+  - Card: `bg-surface border border-border rounded-2xl overflow-hidden group`
+  - Image container: `relative aspect-square bg-surface-tertiary` with hover `group-hover:scale-105 transition-transform duration-300`
+  - Card body: `p-4`
+  - Product name: `text-sm font-medium text-text-primary hover:text-text-secondary line-clamp-1`
+  - Attributes: `text-xs text-text-muted mt-0.5`
+  - Price: `text-sm font-semibold text-text-primary` + compare-at `text-xs text-text-muted line-through`
+  - Out of stock: `text-xs text-error mt-1`
+  - Remove icon: `p-2 text-text-muted hover:text-error rounded-md hover:bg-error-light transition-colors`
+- **Props:** `items: WishlistItem[]`
+- **Behavior:** Client Component. Grid of product cards with image, name, variant attrs, price. "Move to Cart" button adds to cart and removes from wishlist (single Server Action). Remove button deletes from wishlist. Empty state shows CTA to browse products.
+
+#### ReviewsContent
+- **File:** `components/dashboard/ReviewsContent.tsx`
+- **Classes:**
+  - Page heading: same as Wishlist
+  - Empty state: same pattern as Wishlist
+  - Review card: `bg-surface border border-border rounded-2xl p-4`
+  - Product name link: `text-sm font-semibold text-text-primary hover:text-text-secondary`
+  - Date: `text-xs text-text-muted mt-0.5`
+  - Stars: same as product detail — filled `fill-text-primary text-text-primary`, empty `text-border`
+  - Review text: `text-sm text-text-secondary leading-relaxed`
+  - Edit/delete buttons: same icon button pattern as AddressBook
+  - Edit form: `bg-surface border border-border rounded-2xl p-4`
+  - Rating selector: interactive star buttons with `useState` controlled state, `cursor-pointer`
+  - Textarea: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary resize-y`
+- **Props:** `reviews: UserReview[]`
+- **Behavior:** Client Component. Lists user's reviews with product name, rating stars, comment, date. Each card has Edit (inline form with star selector + textarea) and Delete (Server Action) buttons. Rating uses `useState` for controlled interactive star selection during edit.
+
+#### Orders History (built in Feature 15)
+- **File:** `app/(dashboard)/account/orders/page.tsx`
+- Already documented above in Order Tracking section.
 
 ### Admin — Layout
 
