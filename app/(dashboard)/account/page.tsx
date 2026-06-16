@@ -1,8 +1,18 @@
+import { Suspense } from 'react';
 import { requireAuth } from '@/lib/auth/require-auth';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
 export default async function AccountPage() {
     const user = await requireAuth();
 
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <AccountContent user={user} />
+        </Suspense>
+    );
+}
+
+function AccountContent({ user }: { user: { fullName: string | null; email?: string | null; role: string } }) {
     return (
         <div>
             <h2 className="font-[family-name:var(--font-serif)] text-[28px] font-normal text-text-primary mb-6">

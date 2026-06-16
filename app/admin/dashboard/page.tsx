@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import { getUser } from '@/lib/auth/get-user';
 import { redirect } from 'next/navigation';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
 export default async function AdminDashboardPage() {
     const user = await getUser();
@@ -8,6 +10,14 @@ export default async function AdminDashboardPage() {
         redirect('/');
     }
 
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <AdminDashboardContent />
+        </Suspense>
+    );
+}
+
+function AdminDashboardContent() {
     return (
         <div>
             <h2 className="font-[family-name:var(--font-serif)] text-[28px] font-normal text-text-primary mb-6">

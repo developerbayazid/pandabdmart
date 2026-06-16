@@ -1,7 +1,11 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getProductBySlug, getRelatedProducts } from '@/repositories/product.repository';
 import { ProductDetailPage } from '@/components/product/ProductDetailPage';
+import { PageSpinner } from '@/components/ui/PageSpinner';
+
+export const revalidate = 300;
 
 type PageProps = {
     params: Promise<{ slug: string }>;
@@ -21,7 +25,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
 }
 
-export default async function ProductPage({ params }: PageProps) {
+export default function ProductPage({ params }: PageProps) {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <ProductContent params={params} />
+        </Suspense>
+    );
+}
+
+async function ProductContent({ params }: PageProps) {
     const { slug } = await params;
 
     const product = await getProductBySlug(slug);

@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getShopProducts, getShopFilterOptions } from '@/repositories/product.repository';
 import { ShopPageClient } from '@/components/shop/ShopPageClient';
-import { ShopPageClientFallback } from '@/components/shop/ShopPageFallback';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 import type { ShopFilters } from '@/types/shop';
 
 function parseSearchParam(value: string | string[] | undefined): string[] | undefined {
@@ -21,7 +21,15 @@ type PageProps = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function ShopPage({ searchParams }: PageProps) {
+export default function ShopPage({ searchParams }: PageProps) {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <ShopContent searchParams={searchParams} />
+        </Suspense>
+    );
+}
+
+async function ShopContent({ searchParams }: PageProps) {
     const params = await searchParams;
 
     const filters: ShopFilters = {
@@ -41,14 +49,12 @@ export default async function ShopPage({ searchParams }: PageProps) {
     ]);
 
     return (
-        <Suspense fallback={<ShopPageClientFallback filterOptions={filterOptions} />}>
-            <ShopPageClient
-                products={result.products}
-                total={result.total}
-                page={result.page}
-                totalPages={result.totalPages}
-                filterOptions={filterOptions}
-            />
-        </Suspense>
+        <ShopPageClient
+            products={result.products}
+            total={result.total}
+            page={result.page}
+            totalPages={result.totalPages}
+            filterOptions={filterOptions}
+        />
     );
 }

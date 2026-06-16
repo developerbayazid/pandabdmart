@@ -39,11 +39,21 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
     return (
         <html
             lang="en"
             className={`${generalSans.variable} h-full antialiased`}
         >
+            <head>
+                {supabaseUrl && (
+                    <link rel="preconnect" href={supabaseUrl} />
+                )}
+                {supabaseUrl && (
+                    <link rel="dns-prefetch" href={supabaseUrl} />
+                )}
+            </head>
             <body className="min-h-full flex flex-col">
                 <AppProviders>{children}</AppProviders>
             </body>

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getHomepageProducts, getShopFilterOptions } from '@/repositories/product.repository';
 import { HeroSection } from '@/components/home/HeroSection';
 import { FeaturedProduct } from '@/components/home/FeaturedProduct';
@@ -7,8 +8,19 @@ import { CollectionGrid } from '@/components/home/CollectionGrid';
 import { FestiveBanner } from '@/components/home/FestiveBanner';
 import { RecentProducts } from '@/components/home/RecentProducts';
 import { LatestNews } from '@/components/home/LatestNews';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
-export default async function Home() {
+export const revalidate = 60;
+
+export default function Home() {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <HomeContent />
+        </Suspense>
+    );
+}
+
+async function HomeContent() {
     const [products, filterOptions] = await Promise.all([
         getHomepageProducts(),
         getShopFilterOptions(),

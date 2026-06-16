@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { OrderTrackPage } from '@/components/order/OrderTrackPage';
+import { OrderTrackServer } from '@/components/order/OrderTrackServer';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,17 +8,15 @@ export const metadata: Metadata = {
     description: 'Track your order status in real-time',
 };
 
-export default function TrackOrderPage() {
+type PageProps = {
+    params: Promise<{ orderId: string }>;
+};
+
+export default function TrackOrderPage({ params }: PageProps) {
     return (
         <main className="min-h-screen bg-background">
-            <Suspense
-                fallback={
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="w-6 h-6 border-2 border-border border-t-text-primary rounded-full animate-spin" />
-                    </div>
-                }
-            >
-                <OrderTrackPage />
+            <Suspense fallback={<PageSpinner />}>
+                <OrderTrackServer params={params} />
             </Suspense>
         </main>
     );

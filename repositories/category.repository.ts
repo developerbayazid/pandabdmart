@@ -1,9 +1,10 @@
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type { CategoryPageData } from '@/types/category';
 import type { ShopFilters, ShopFilterOptions, ShopPageResult, ShopProduct } from '@/types/shop';
 import { PRODUCTS_PER_PAGE } from '@/lib/constants/pagination';
 
-export async function getCategoryBySlug(slug: string): Promise<CategoryPageData | null> {
+export const getCategoryBySlug = cache(async (slug: string): Promise<CategoryPageData | null> => {
     const supabase = await createClient();
 
     const { data: category, error } = await supabase
@@ -48,7 +49,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryPageData 
         ancestors,
         children: (children ?? []).map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
     };
-}
+});
 
 async function getBrandIds(slugs: string[]): Promise<string[]> {
     const supabase = await createClient();

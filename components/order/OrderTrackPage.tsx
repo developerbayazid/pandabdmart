@@ -26,17 +26,27 @@ function formatDate(dateStr: string): string {
     });
 }
 
-export function OrderTrackPage() {
+interface OrderTrackPageProps {
+    initialOrder?: Order | null;
+    initialError?: string | null;
+    orderIdOverride?: string;
+}
+
+export function OrderTrackPage({ initialOrder, initialError, orderIdOverride }: OrderTrackPageProps = {}) {
     const params = useParams();
     const router = useRouter();
-    const orderId = params.orderId as string;
+    const orderId = orderIdOverride ?? (params.orderId as string);
 
-    const [order, setOrder] = useState<Order | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const hasInitialData = initialOrder !== undefined || initialError !== undefined;
+
+    const [order, setOrder] = useState<Order | null>(initialOrder ?? null);
+    const [loading, setLoading] = useState(!hasInitialData);
+    const [error, setError] = useState<string | null>(initialError ?? null);
     const [needsLookup, setNeedsLookup] = useState(false);
 
     useEffect(() => {
+        if (hasInitialData) return;
+
         let cancelled = false;
 
         const fetchOrder = async () => {
@@ -65,7 +75,7 @@ export function OrderTrackPage() {
         return () => {
             cancelled = true;
         };
-    }, [orderId]);
+    }, [orderId, hasInitialData]);
 
     useEffect(() => {
         if (!order) return;

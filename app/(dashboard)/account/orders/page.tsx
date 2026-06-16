@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/auth/get-user';
 import Link from 'next/link';
@@ -6,16 +7,25 @@ import { OrderStatusBadge } from '@/components/order/OrderStatusBadge';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderStatus } from '@/lib/constants/order';
 import { ArrowRight } from 'lucide-react';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
 export default async function OrdersPage() {
     const user = await getUser();
     if (!user) redirect('/signin');
 
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <OrdersContent userId={user.id} />
+        </Suspense>
+    );
+}
+
+async function OrdersContent({ userId }: { userId: string }) {
     const supabase = await createClient();
     const { data: orders, error } = await supabase
         .from('orders')
         .select('id, status, payment_method, grand_total, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
     return (

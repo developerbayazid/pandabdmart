@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type {
     ProductDetail,
@@ -229,7 +230,7 @@ export async function getShopFilterOptions(): Promise<ShopFilterOptions> {
     };
 }
 
-export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
+export const getProductBySlug = cache(async (slug: string): Promise<ProductDetail | null> => {
     const supabase = await createClient();
 
     const { data: product, error } = await supabase
@@ -348,7 +349,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
         reviewCount: reviews.length,
         reviews,
     };
-}
+});
 
 export async function getRelatedProducts(
     categorySlug: string,

@@ -3,8 +3,10 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getCategoryBySlug, getCategoryProducts, getCategoryFilterOptions } from '@/repositories/category.repository';
 import { CategoryPageClient } from '@/components/category/CategoryPageClient';
-import { CategoryPageClientFallback } from '@/components/category/CategoryPageFallback';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 import type { ShopFilters } from '@/types/shop';
+
+export const revalidate = 120;
 
 function parseSearchParam(value: string | string[] | undefined): string[] | undefined {
     if (!value) return undefined;
@@ -38,7 +40,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
 }
 
-export default async function CategoryPage({ params, searchParams }: PageProps) {
+export default function CategoryPage({ params, searchParams }: PageProps) {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <CategoryContent params={params} searchParams={searchParams} />
+        </Suspense>
+    );
+}
+
+async function CategoryContent({ params, searchParams }: PageProps) {
     const { slug } = await params;
     const sp = await searchParams;
 
@@ -64,16 +74,14 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     ]);
 
     return (
-        <Suspense fallback={<CategoryPageClientFallback />}>
-            <CategoryPageClient
-                categoryData={categoryData}
-                products={result.products}
-                total={result.total}
-                page={result.page}
-                totalPages={result.totalPages}
-                filterOptions={filterOptions}
-                categorySlug={slug}
-            />
-        </Suspense>
+        <CategoryPageClient
+            categoryData={categoryData}
+            products={result.products}
+            total={result.total}
+            page={result.page}
+            totalPages={result.totalPages}
+            filterOptions={filterOptions}
+            categorySlug={slug}
+        />
     );
 }

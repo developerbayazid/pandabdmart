@@ -1,74 +1,60 @@
-# Memory — Feature 15: Order Tracking Page
+# Memory — Suspense Streaming + Performance Pass
 
-Last updated: 2026-06-15 23:28
+Last updated: 2026-06-16 21:00
 
 ## What was built
 
-**Feature 15: Order Tracking Page** — complete with all sub-features:
+**Suspense streaming on every route** — all 15 pages converted to synchronous wrappers with `<Suspense>` boundaries. Inner async content components handle data fetching.
 
 New files:
-- `types/order.ts` — Order, OrderPayment, OrderShipping, OrderItemSnapshot, OrderLookupInput types
-- `services/order.service.ts` — getOrder, guestLookup, cancelUserOrder, generateInvoice; shared `mapDbRowToOrder()` helper
-- `actions/order.actions.ts` — getOrderAction, guestLookupAction, cancelOrderAction, downloadInvoiceAction
-- `lib/pdf/invoice.tsx` — @react-pdf/renderer InvoicePDF component (Document, Page, View, Text)
-- `lib/pdf/render.tsx` — renderInvoiceBuffer() helper wrapping renderToBuffer
-- `components/order/OrderStatusBadge.tsx` — uses shared Badge component via status-to-variant mapping
-- `components/order/OrderTimeline.tsx` — linear timeline; adapts to payment method; cancelled state
-- `components/order/OrderItemsList.tsx` — renders items from snapshots with prices
-- `components/order/ShippingAddressDisplay.tsx` — read-only address display
-- `components/order/CancelOrderButton.tsx` — client component; confirm dialog; calls cancelOrderAction
-- `components/order/InvoiceDownloadButton.tsx` — client component; blob download from server action
-- `components/order/GuestOrderLookup.tsx` — orderId + email or phone lookup form
-- `components/order/OrderTrackPage.tsx` — main orchestrator; 3 states (loading/guest lookup/order display); Supabase Realtime
-- `components/order/TrackPageClient.tsx` — wraps GuestOrderLookup for /track page
-- `app/(storefront)/track/page.tsx` — standalone lookup page
-- `app/(storefront)/track/[orderId]/page.tsx` — server component + Suspense
-- `app/(dashboard)/account/orders/page.tsx` — customer order history with clickable full UUID IDs → /track/[orderId]
-- `supabase/migrations/20260615230000_add_customer_email.sql` — adds customer_email to orders + guest_lookup_order RPC
-- `supabase/migrations/20260615235000_cancel_order_rpc.sql` — cancel_order security definer RPC
+- `components/ui/PageSpinner.tsx` — shared spinner (w-6 h-6 border spinner, used by all Suspense fallbacks)
+- `components/order/OrderTrackServer.tsx` — async server component, fetches order via `getOrderAction` before passing to client display
 
-Modified:
-- `repositories/order.repository.ts` — added getOrderById(), getOrderByIdWithVerification() (uses RPC), cancelOrder() (uses RPC); added customerEmail to CreateOrderInput; stores customer_email on order creation; COD cancel restores stock
-- `services/checkout.service.ts` — passes customerEmail to repository
-- `components/layout/Navbar.tsx` — added "TRACK ORDER" link between SHOP and categories
-- `app/(dashboard)/layout.tsx` — added "Track Order" sidebar link
-- `lib/utils.ts` — formatCurrency updated to use ৳ symbol
-- `components/order/OrderItemsList.tsx` / `OrderTrackPage.tsx` — import formatCurrency from lib/utils
-- `components/order/OrderStatusBadge.tsx` — uses shared Badge component (not standalone)
-- `context/progress-tracker.md` / `context/ui-registry.md` — updated
-- `package.json` — added @react-pdf/renderer
+Modified files:
+- `app/(storefront)/page.tsx` — synchronous wrapper, `HomeContent` inner async, `revalidate = 60` ISR
+- `app/(storefront)/shop/page.tsx` — synchronous, `ShopContent` inner async, PageSpinner fallback
+- `app/(storefront)/categories/[slug]/page.tsx` — synchronous, `CategoryContent` inner async, PageSpinner fallback, `revalidate = 120` ISR
+- `app/(storefront)/products/[slug]/page.tsx` — synchronous, `ProductContent` inner async, PageSpinner fallback, `revalidate = 300` ISR
+- `app/(storefront)/cart/page.tsx` — synchronous, `CartContent` inner async
+- `app/(storefront)/checkout/page.tsx` — async (awaits `requireAuth` before Suspense to preserve HTTP 307), `CheckoutContent` inner async
+- `app/(storefront)/track/page.tsx` — synchronous, wraps `TrackPageClient` in Suspense
+- `app/(storefront)/track/[orderId]/page.tsx` — synchronous, passes `params` Promise to `<OrderTrackServer>` inside Suspense
+- `app/(dashboard)/account/page.tsx` — async (awaits `requireAuth` before Suspense)
+- `app/(dashboard)/account/orders/page.tsx` — async (awaits `getUser` + redirect before Suspense), `OrdersContent` receives `userId`
+- `app/admin/dashboard/page.tsx` — async (awaits `getUser` + redirect before Suspense)
+- `repositories/category.repository.ts` — `getCategoryBySlug` wrapped in `React.cache()`
+- `repositories/product.repository.ts` — `getProductBySlug` wrapped in `React.cache()`
+- `app/layout.tsx` — added `<link rel="preconnect">` + `dns-prefetch` for Supabase URL
+- `components/order/OrderTrackPage.tsx` — accepts optional `initialOrder`/`initialError`/`orderIdOverride` props, skips client fetch when pre-provided
+- `context/progress-tracker.md` — updated
 
 ## Decisions made
 
-- **Guest lookup uses security definer RPC** (`guest_lookup_order`) — bypasses RLS since guests can't read users.email or orders (RLS `orders_read_own` requires `auth.uid()`)
-- **Cancel uses security definer RPC** (`cancel_order`) — customers can't UPDATE orders due to `orders_admin_update` RLS; RPC handles stock release/restore + status update atomically
-- **customer_email stored on orders table** — needed for guest email verification since users table is RLS-protected
-- **COD cancel restores stock** — previously missing; now handled in both the RPC and the JS fallback
-- **OrderStatusBadge uses shared Badge component** — maps OrderStatus to Badge variant strings (success/warning/error/info)
-- **formatCurrency centralized in lib/utils.ts** — uses ৳ prefix; removed 3 local duplicates
+- **Suspense pattern**: pages are synchronous wrappers, async data fetching in inner `*Content` components — allows Next.js streaming: shell + spinner sent immediately, data fills in when ready
+- **Auth/redirect pages stay async**: checkout, account, orders, admin dashboard await auth check before Suspense to preserve HTTP 307/redirect status codes (Next.js degrades `redirect()` inside Suspense to client-side meta redirect)
+- **notFound() inside Suspense accepted**: category and product pages use synchronous wrappers with `notFound()` inside the inner async component — produces HTTP 200 + `noindex` meta instead of 404, but search engines treat identically for indexing. Trade-off: immediate streaming UX over HTTP status code purity
+- **React.cache() for per-request dedup**: `getCategoryBySlug` and `getProductBySlug` wrapped in `cache()` — prevents duplicate DB calls when both `generateMetadata` and page component fetch the same data
+- **Page-level ISR for caching**: homepage 60s, categories 120s, products 300s — caches full page HTML, instant response on warm cache
+- **unstable_cache NOT used**: Supabase server client uses `cookies()` internally — incompatible with `unstable_cache()`. Removed after it caused homepage crash
+- **Preconnect for Supabase**: reduces DNS+TCP+TLS handshake latency on first request
 
 ## Problems solved
 
-- Guest lookup failed because `users!inner(email)` join was blocked by RLS — fixed with `guest_lookup_order` security definer RPC that bypasses RLS
-- Cancel order failed because `orders_admin_update` RLS blocked customer UPDATE — fixed with `cancel_order` security definer RPC
-- COD order cancellation never restored decremented stock — fixed in both the RPC and JS fallback
-- Duplicated DB-to-Order mapping across 3 service functions — extracted to `mapDbRowToOrder()` helper
-- formatCurrency defined in 3 places with inconsistent implementation — centralized in lib/utils.ts
+- `unstable_cache()` on repository functions caused homepage crash: `cookies()` called inside cached scope — removed all `unstable_cache` wrappers, kept only page-level ISR
+- Track/[orderId] Suspense didn't trigger: `OrderTrackPage` is a `'use client'` component that renders immediately (no suspend). Fixed by creating `OrderTrackServer` async server component that fetches data before passing to client — Suspense now shows spinner during server fetch
+- Shop/category pages had broken Suspense: pages were `async`, blocking first byte. Fixed by making them synchronous wrappers
+- Review flagged `redirect()`/`notFound()` inside Suspense as degrading HTTP status codes — resolved for redirect pages by keeping auth check outside Suspense; accepted noindex tradeoff for notFound pages
 
 ## Current state
 
-- Phase 1: 01–04 ✓
-- Phase 2: 05–09 ✓
-- Phase 3: 10–14 ✓
-- Phase 4: 15 ✓ (Order Tracking Page complete)
-- Build: clean (0 TS errors)
-- Routes: /track (lookup), /track/[orderId] (tracking), /account/orders (order history)
-- Storefront navbar: TRACK ORDER link present
-- Dashboard sidebar: Orders + Track Order links present
-- Guest lookup: works via guest_lookup_order RPC (migration 20260615230000 deployed)
-- Cancel order: works via cancel_order RPC (migration 20260615235000 deployed)
-- Realtime: order status updates live on tracking page
-- Invoice: PDF download via @react-pdf/renderer
+- All 15 routes have Suspense boundaries, 0 TS errors
+- Streaming works: shell + spinner sent immediately, data fills in
+- Page-level ISR active on homepage, categories, products
+- Supabase preconnect in root layout
+- `React.cache()` deduplication on category/product slug lookups
+- Track order page: server fetches order, Suspense shows spinner, client gets pre-fetched data with realtime
+- Phase 1-4 (features 01-15): complete
+- Phase 4 feature 16 (Customer Dashboard): not started
 
 ## Next session starts with
 
