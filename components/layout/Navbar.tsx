@@ -14,6 +14,7 @@ export async function Navbar() {
         .order('name');
 
     let cartCount: number | null = null;
+    let isAdmin = false;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -22,6 +23,12 @@ export async function Navbar() {
         } catch {
             cartCount = 0;
         }
+        const { data: userRow } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+        isAdmin = userRow?.role === 'admin' || userRow?.role === 'shop_manager';
     }
 
     return (
@@ -98,7 +105,7 @@ export async function Navbar() {
                             <Search className="w-5 h-5" />
                         </button>
                         <CartNavLink initialCount={cartCount} />
-                        <AuthNavActions />
+                        <AuthNavActions isAdmin={isAdmin} />
                     </div>
                 </div>
             </nav>

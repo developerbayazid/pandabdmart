@@ -702,7 +702,112 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 ### Admin — Dashboard
 
-<!-- StatCard, RecentOrdersTable, SalesChart, LowStockAlert -->
+#### StatCard
+- **File:** `components/admin/StatCard.tsx`
+- **Classes:**
+  - Card: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Icon container: `w-10 h-10 rounded-lg bg-surface-secondary border border-border flex items-center justify-center`
+  - Label: `text-[14px] text-text-secondary font-medium mb-1`
+  - Value: `text-[30px] font-semibold text-text-primary leading-[36px]`
+  - Trend badge: `inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full` positive `bg-success-light text-success-foreground`, negative `bg-error-light text-error-foreground`
+- **Props:** `label: string`, `value: string | number`, `trend?: number`, `icon: 'users' | 'orders' | 'revenue' | 'pending'`
+- **Behavior:** Displays a stat with optional trend badge. Icon and trend badge are on the same row at the top. Big number is below the label.
+
+#### MonthlyTarget
+- **File:** `components/admin/MonthlyTarget.tsx`
+- **Classes:**
+  - Card: same shell as StatCard
+  - Title row: `flex items-center justify-between mb-1`
+  - Progress badge: `text-[12px] font-medium bg-success-light text-success-foreground px-2 py-0.5 rounded-full`
+  - Subtitle: `text-[12px] text-text-secondary mb-4`
+  - Description: `text-[14px] text-text-secondary leading-relaxed text-center`
+  - Footer grid: `grid grid-cols-3 gap-3 pt-4 border-t border-border`
+  - Footer item: `text-center` with label `text-[12px] text-text-secondary mb-1` and value `text-[14px] font-semibold text-text-primary inline-flex items-center gap-1`
+- **Props:** `todayRevenue: number`, `monthlyRevenue: number`
+- **Behavior:** Shows monthly target card with computed target (1.2x monthly revenue), progress badge, motivational text, and 3-column footer (Target/Revenue/Today with trend arrows).
+
+#### MonthlySales
+- **File:** `components/admin/MonthlySales.tsx`
+- **Classes:**
+  - Card: same shell
+  - Header: `flex items-center justify-between mb-2`
+  - Menu button: `p-1.5 rounded-md hover:bg-surface-secondary transition-colors text-text-muted`
+- **Props:** `monthlyRevenue: number`
+- **Behavior:** Section header card for monthly sales. Currently a minimal placeholder with title and 3-dot menu.
+
+#### SalesChart
+- **File:** `components/admin/SalesChart.tsx`
+- **Classes:**
+  - Card: same shell as StatCard
+  - Header: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6`
+  - Title: `text-[16px] font-semibold text-text-primary leading-6`
+  - Subtitle: `text-[12px] text-text-secondary mt-0.5`
+  - Tab group: `inline-flex items-center bg-surface-secondary rounded-lg border border-border p-0.5`
+  - Tab button: `text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors` active `bg-surface text-text-primary shadow-sm`, inactive `text-text-secondary hover:text-text-primary`
+  - Date picker: `inline-flex items-center gap-2 text-[13px] text-text-secondary bg-surface-secondary border border-border rounded-lg px-3 py-1.5`
+  - Chart container: `h-[300px] w-full`
+  - Tooltip: `bg-surface border border-border rounded-lg px-3 py-2 shadow-lg`
+- **Props:** `data: { date: string; revenue: number; orders: number }[]`
+- **Behavior:** Recharts AreaChart with tabs (Monthly/Quarterly/Annually) and date range picker. Monochrome gradient fill. Stroke `#0a0a0a` at 3px. X-axis `Mon DD`. Y-axis `৳Xk`. Custom tooltip.
+
+#### RecentOrdersTable
+- **File:** `components/admin/RecentOrdersTable.tsx`
+- **Classes:**
+  - Card: same shell
+  - Header: `flex items-center justify-between mb-6`
+  - Table header: `text-left text-[12px] font-medium uppercase tracking-wide text-text-secondary px-3 py-3`
+  - Row: `border-b border-border last:border-0 hover:bg-surface-secondary transition-colors`
+  - Cell: `px-3 py-3 text-[14px]`
+  - Order link: `text-[14px] font-medium text-text-primary hover:text-text-secondary transition-colors`
+  - See all link: `text-[13px] font-medium text-text-secondary hover:text-text-primary inline-flex items-center gap-1`
+- **Props:** `orders: RecentOrder[]`
+- **Behavior:** Table of last 10 orders. Columns: Order ID (linked), Customer name/email, Date, Status badge, Total. Empty state shows "No orders yet". "See all" links to `/admin/orders`.
+
+#### CustomersDemographic
+- **File:** `components/admin/CustomersDemographic.tsx`
+- **Classes:**
+  - Card: same shell
+  - Header: `flex items-center gap-2 mb-6` with `Users` icon
+  - Big number: `text-[36px] font-semibold text-text-primary leading-[44px]`
+  - Stat row: `flex items-center justify-between` with label `text-[14px] text-text-secondary` and value `text-[14px] font-medium text-text-primary`
+- **Props:** `totalCustomers: number`
+- **Behavior:** Shows total customer count with placeholder rows for new/returning/guest stats.
+
+#### LowStockAlert
+- **File:** `components/admin/LowStockAlert.tsx`
+- **Classes:**
+  - Card: same shell
+  - Header: `flex items-center gap-2 mb-6` with `AlertTriangle` icon `text-warning`
+  - Count badge: `text-[12px] font-medium bg-warning-light text-warning-foreground px-2 py-0.5 rounded-full`
+  - Item card: `flex items-center justify-between p-3 bg-surface-secondary rounded-xl border border-border`
+  - Product name: `text-[14px] font-medium text-text-primary hover:text-text-secondary transition-colors truncate block`
+  - Stock: `text-[14px] font-semibold text-warning`
+  - Empty state: `w-16 h-16 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-3` with `Package` icon
+- **Props:** `items: LowStockItem[]`
+- **Behavior:** Shows up to 6 low stock items. Each item displays product name, SKU, and remaining stock. Reserved stock shown as secondary text. Links to `/admin/products`. "+ N more items" link when more than 6. Empty state: "All products are well stocked".
+
+#### TopProducts
+- **File:** `components/admin/TopProducts.tsx`
+- **Classes:**
+  - Card: same shell
+  - Header: `flex items-center gap-2 mb-6` with `TrendingUp` icon
+  - Rank badge: `w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-[13px] font-semibold text-text-secondary shrink-0`
+  - Item: `flex items-center gap-3 p-3 bg-surface-secondary rounded-xl border border-border`
+  - Product name: `text-[14px] font-medium text-text-primary hover:text-text-secondary transition-colors truncate block`
+  - Revenue: `text-[14px] font-semibold text-text-primary shrink-0`
+- **Props:** `products: TopProduct[]`
+- **Behavior:** Shows top 5 products by quantity sold. Each row shows rank number, product name, units sold, and total revenue. Links to `/admin/products`. Empty state: "No sales data yet".
+
+#### AdminDashboard
+- **File:** `components/admin/AdminDashboard.tsx`
+- **Classes:**
+  - Container: `space-y-6`
+  - Stats row: `grid grid-cols-1 md:grid-cols-3 gap-4` (Customers, Orders, Monthly Target)
+  - Monthly Sales: full-width card
+  - Chart row: full-width Statistics card with tabs
+  - Bottom row: `grid grid-cols-1 lg:grid-cols-2 gap-4` (Customers Demographic, Recent Orders)
+- **Props:** `initialData: DashboardData`
+- **Behavior:** Client component orchestrating all dashboard sections. Layout matches TailAdmin dashboard design. Supabase Realtime subscription on `orders` table (INSERT and UPDATE events) — live updates to stat counts without page refresh. Computes `monthlyRevenue` via `useMemo` from 30-day sales data.
 
 ### Admin — Catalog Management
 
@@ -960,7 +1065,75 @@ Likely early candidates for shared patterns in this project:
 - Primary/secondary/destructive button (Add to Cart, Place Order, Approve/Reject, Delete)
 - Radio card (shipping zone, payment method, possibly future admin settings)
 
+### Admin — Product Management (Feature 18)
+
+#### ProductList
+- **File:** `components/admin/ProductList.tsx`
+- **Classes:**
+  - Title: `text-[16px] font-semibold text-text-primary`
+  - Subtitle: `text-[14px] text-text-secondary mt-1`
+  - Add button: `bg-surface-inverse text-text-inverse text-[14px] font-medium rounded-md px-4 py-2 hover:bg-surface-inverse-hover`
+  - Search input: `w-full bg-surface border border-border rounded-md pl-10 pr-4 py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Filter select: `bg-surface border border-border rounded-md px-3 py-2 text-[14px] text-text-primary focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Table card: `bg-surface border border-border rounded-2xl overflow-hidden shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Thumbnail: `w-10 h-10 rounded-md object-cover border border-border`
+  - Empty state: `bg-surface border border-border rounded-2xl p-12 text-center` with `text-[14px] text-text-secondary`
+  - Delete confirm: inline `text-[13px]` with `text-error hover:underline` / `text-text-secondary hover:underline`
+  - Info text: `text-[14px] text-text-secondary`
+- **Props:** `initialData: AdminProductListResult | null`, `filterOptions: ProductFormOptions | null`, `currentFilters: AdminProductFilters`
+- **Behavior:** URL-driven search and filter (category, brand, status). Server-paginated via URL params. Empty state with "Create your first product" CTA or "Clear filters" link. Inline delete confirmation.
+
+#### ProductForm
+- **File:** `components/admin/ProductForm.tsx`
+- **Classes:**
+  - Section card: same shell as ProductList table card (`bg-surface border border-border rounded-2xl p-6 shadow-[...]`)
+  - Section heading: `text-[16px] font-semibold text-text-primary mb-4`
+  - Form label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Textarea: same as input + `resize-y`
+  - Select: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Grid: `grid grid-cols-1 md:grid-cols-2 gap-4`
+  - Error banner: `bg-error-light border border-error/20 rounded-md px-4 py-3 text-[14px] text-error`
+  - Specs textarea: `font-mono`
+- **Props:** `initialProduct?: Record<string, unknown> | null`, `options: ProductFormOptions`, `mode: 'create' | 'edit'`, `productId?: string`
+- **Behavior:** Auto-generates slug from name (editable). Controlled form state. Variant cards with expand/collapse. Creates product first, then variants for new products. Updates product, creates/updates/deletes variants for edits. All mutations via Server Actions. Redirects to `/admin/products` on save. Cancel goes back without saving.
+
+#### VariantCard (within ProductForm)
+- **Classes:**
+  - Container: `border border-border rounded-lg overflow-hidden`
+  - Header: `flex items-center justify-between px-4 py-3 bg-surface-secondary cursor-pointer`
+  - Body: `p-4 space-y-4 border-t border-border`
+  - Variant title: `text-[14px] font-medium text-text-primary`
+  - Field grid: `grid grid-cols-1 md:grid-cols-3 gap-4`
+  - Attribute pill (selected): `bg-text-primary text-text-inverse border-text-primary`
+  - Attribute pill (unselected): `bg-surface text-text-secondary border-border hover:bg-surface-secondary`
+  - Pill base: `px-2.5 py-1 text-[12px] font-medium rounded-full border transition-colors`
+  - Remove button: `p-1 text-text-muted hover:text-error transition-colors`
+- **Behavior:** Expand/collapse toggle. Shows summary (variant number, active badge, SKU, stock, price) when collapsed. Full edit form when expanded: SKU, price, compare price, stock, active checkbox, attribute value selectors (pill toggle), image upload.
+
+#### ImageUpload
+- **File:** `components/admin/ImageUpload.tsx`
+- **Classes:**
+  - Thumbnail: `w-20 h-20 rounded-md border border-border overflow-hidden bg-surface-secondary`
+  - Primary indicator: `absolute top-1 left-1 bg-text-primary text-text-inverse rounded-full p-0.5`
+  - Hover overlay: `absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100`
+  - Upload button: `w-20 h-20 rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors`
+  - Helper text: `text-[11px] text-text-muted`
+- **Props:** `images: { url, isPrimary, sortOrder }[]`, `onChange`, `productId?`, `variantId?`
+- **Behavior:** Multi-file upload to Supabase Storage via `lib/upload.ts`. Preview thumbnails with primary star badge. Hover to reveal set-primary and remove actions. Upload progress via button text. Handles upload state per variant.
+
+### Infrastructure
+
+#### Audit Logging
+- **File:** `repositories/audit.repository.ts`, `services/audit.service.ts`
+- **Behavior:** `insertAuditLog(actorId, action, entityType, entityId, meta)` inserts into `audit_logs` table. Used by all admin CRUD operations in `services/product.service.ts`. `getAuditLogs` for audit log viewer (Feature 23). Non-blocking — failures are logged but never throw.
+
+#### Image Upload Utility
+- **File:** `lib/upload.ts`
+- **Behavior:** Browser-client upload to `product-images` Supabase Storage bucket. Path: `products/{productId}/{filename}`. Returns public URL. Throws on failure.
+
 ---
+
 
 ## Placeholder Pages
 

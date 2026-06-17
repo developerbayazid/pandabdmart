@@ -1,79 +1,65 @@
-# Memory — Feature 16: Customer Dashboard + Wishlist Integration
+# Memory — Feature 18: Product & Variant Management + Image Fix
 
-Last updated: 2026-06-16 22:57
+Last updated: 2026-06-17 07:48
 
 ## What was built
 
-**Feature 16 — Customer Dashboard (Full UI + Real Data):**
+**Feature 18 — Product & Variant Management (Admin CRUD):**
 
 New files:
-- `supabase/migrations/20260616100000_add_address_book.sql` — standalone `addresses` table with user-scoped RLS
-- `repositories/user.repository.ts` — `updateProfile(userId, data)`
-- `repositories/wishlist.repository.ts` — `getWishlist`, `addToWishlist`, `removeFromWishlist`, `removeFromWishlistByVariant`, `isInWishlist`
-- `repositories/address.repository.ts` — full CRUD with default-address mutual-exclusion logic
-- `services/user.service.ts`, `services/wishlist.service.ts`, `services/address.service.ts`
-- `actions/user.actions.ts`, `actions/wishlist.actions.ts`, `actions/address.actions.ts`
-- `components/dashboard/ProfileForm.tsx` — `useActionState` form with name/phone fields, success/error banners
-- `components/dashboard/AddressBook.tsx` — inline add/edit forms with hidden `addressId` field, default badge, delete with `Loader2` spinner
-- `components/dashboard/WishlistContent.tsx` — responsive grid (1-2-3 cols), Move to Cart (adds + removes from wishlist), Remove with error/loading states
-- `components/dashboard/ReviewsContent.tsx` — review cards with interactive star rating selector on edit, delete with loading state
-- `app/(dashboard)/account/reviews/page.tsx`, `app/(dashboard)/account/wishlist/page.tsx` — both with Suspense boundaries
+- `repositories/audit.repository.ts` — `insertAuditLog()`, `getAuditLogs()`
+- `services/audit.service.ts` — `logAuditEvent()` wrapper
+- `services/product.service.ts` — full CRUD with validation + audit
+- `actions/product.actions.ts` — Server Actions with storefront revalidation
+- `types/admin-product.ts` — all admin product types
+- `lib/upload.ts` — Supabase Storage image upload (browser client)
+- `components/admin/ProductList.tsx` — search/filter/pagination table
+- `components/admin/ProductForm.tsx` — create/edit form with variant cards
+- `components/admin/ImageUpload.tsx` — multi-image upload with preview
+- `app/admin/products/page.tsx` — listing page (server)
+- `app/admin/products/new/page.tsx` — create page (server)
+- `app/admin/products/[id]/edit/page.tsx` — edit page (server)
+
+**Image display fix:**
+- `supabase/migrations/20260617160000_add_storage_public_select.sql` — public SELECT policy on storage.objects
+- `next.config.ts` — added `images.remotePatterns` for Supabase storage domain
+- `actions/product.actions.ts` — added `revalidatePath('/shop')` and `revalidatePath('/')` after all mutations
 
 Modified files:
-- `app/(dashboard)/account/page.tsx` — ProfileForm + AddressBook sections, uses `getAddresses` repository
-- `repositories/review.repository.ts` — added `getUserReviews`, `updateReview`, `deleteReview`
-- `services/review.service.ts` — added `updateUserReview`, `deleteUserReview`
-- `actions/review.actions.ts` — added `updateReviewAction`, `deleteReviewAction`
-- `lib/auth/get-user.ts` — `AuthUser` type now includes `phone` field, added `console.error` in catch block
-- `app/globals.css` — unchanged
-
-**Wishlist button on product detail page (bug fix):**
-
-New files:
-- `hooks/useWishlist.ts` — checks browser auth via `createClient().auth.getSession()`, fetches initial per-variant wishlist state via `checkWishlistAction`, toggles via `addToWishlistAction` / `removeFromWishlistByVariantAction`, redirects unauthenticated users to `/signin`
-
-Modified files:
-- `components/product/ProductDetailPage.tsx` — replaced dead `useState(false)` toggle with `useWishlist(selectedVariant?.id)`, shows `Loader2` spinner, disabled state when no variant selected
-- `actions/wishlist.actions.ts` — added `addToWishlistAction`, `checkWishlistAction`, `removeFromWishlistByVariantAction`
-- `services/wishlist.service.ts` — added `addToWishlist`, `checkWishlist`, `removeFromWishlistByVariant`
-- `repositories/wishlist.repository.ts` — added `removeFromWishlistByVariant(userId, variantId)`
+- `repositories/product.repository.ts` — 11 admin CRUD functions added
+- `lib/constants/pagination.ts` — `ADMIN_PRODUCTS_PER_PAGE = 20`
+- `supabase/config.toml` — removed invalid `db.schema` key
 
 ## Decisions made
 
-- **Pages use direct Supabase queries, not repositories.** During review, pages were changed to use repositories, but this caused the wishlist/reviews pages to not fetch data (likely due to Suspense interaction or cookie context in repository call chain). Reverted to direct queries matching the orders page pattern. Repository functions remain available for server actions.
-- **Wishlist toggle per variant.** The `useWishlist` hook tracks wishlist state per selected variant ID — re-fetches when the user changes variant selection on the product detail page.
-- **Variant-based wishlist remove.** Added `removeFromWishlistByVariant` (by userId + variantId) alongside the existing ID-based `removeFromWishlist`, since the product page doesn't have the wishlist entry ID.
-- **Hidden form field for edit addressId.** AddressBook passes `addressId` via `<input type="hidden">` instead of closure to avoid stale closure issues with `useActionState`.
-- **Suspense restored on wishlist/reviews dashboard pages.** Outer page is synchronous wrapper, inner `*Async` component handles auth + data fetch.
+- **Audit logging is non-blocking.** `logAuditEvent` catches errors silently — business mutations complete even if audit fails. This matches code-standards.md philosophy ("never let one failure crash an order").
+- **Variant CRUD is sequential in repository layer**, not in an RPC. Review noted this as non-atomic risk. Fixed by throwing errors on attribute/image failures instead of silent `console.error`.
+- **ProductForm error handling fixed post-review.** Every `createVariantAction`/`updateVariantAction` result is now checked for `.success`; form stops on first failure with error displayed.
+- **`updateVariant` now validates `price >= 0` and `stock >= 0`** matching `createVariant`.
+- **Storage bucket SELECT policy was missing from initial migration.** Added via `20260617160000_add_storage_public_select.sql`. Without it, anonymous users get 403 on image URLs.
+- **Next.js `<Image>` requires `remotePatterns`.** Added Supabase storage domain to `next.config.ts`.
+- **Storefront revalidation added** to all product/variant mutations to flush ISR cache after admin edits (shop, homepage, product pages).
 
 ## Problems solved
 
-- **Wishlist tab showed empty because no data was ever saved.** The heart button on `ProductDetailPage` was a local `useState` toggle with zero backend — clicking it changed a visual boolean only. Fixed by creating `useWishlist` hook wired to real server actions.
-- **`unstable_cache` incompatible with Supabase cookies.** Confirmed from previous session — page-level ISR used instead.
-- **Review flagged direct Supabase calls in pages.** Fixed by using repositories, but this introduced a regression (wishlist tab not fetching). Reverted to direct queries while keeping repositories for actions. The root cause of the regression wasn't fully isolated — likely a Suspense + async repository call chain issue with cookie context.
+- **Product images missing in frontend after admin upload.** Root causes: (1) No public SELECT policy on `storage.objects` for `product-images` bucket — anonymous reads returned 403. (2) Next.js `<Image>` rejected external Supabase URLs without `remotePatterns`. (3) Storefront ISR pages served stale cached content for up to 5 minutes.
+- **Hard-coded FK constraint name.** Changed `users!audit_logs_actor_id_fkey` to `users!inner` to avoid deploy breakage.
+- **Unused imports.** Removed `Filter`, `Input`, `Select`, `AdminCategoryOption`, `AdminBrandOption` from components.
 
 ## Current state
 
-- Phases 1-4 (features 01-16): complete
-- All 15 routes have Suspense boundaries, 0 TS errors
-- Page-level ISR on homepage (60s), categories (120s), products (300s)
-- `React.cache()` on category/product slug lookups
-- Wishlist button on product detail page: fully functional (check → toggle → DB)
-- Wishlist dashboard page: shows real data, Move to Cart / Remove work
-- Reviews dashboard page: shows real data, Edit / Delete work
-- Address book: full CRUD on account page
-- Profile edit: works (name, phone)
-- Build: clean
+- Phase 5: Features 17 and 18 complete. Build: clean (0 TS errors).
+- Admin dashboard: `/admin/dashboard` with live stats + realtime.
+- Admin products: `/admin/products` listing, create, edit, delete with full CRUD + audit.
+- Image upload pipeline working (browser → Supabase Storage → public URL → variant_images → frontend display).
+- Storage migration `20260617160000_add_storage_public_select.sql` **pending manual deployment** — run via Supabase dashboard SQL editor.
 
 ## Next session starts with
 
-Phase 5 — Feature 17: Admin Dashboard (Full UI + Real Data). Stat cards (sales, orders, revenue, top products, low stock alerts), recent orders table, sales chart (recharts), live data via Supabase Realtime on `orders` table.
-
-Pending manual deployment:
-- Migration `20260616100000_add_address_book.sql`
-- Migration `20260615210000_cod_payment_method.sql`
+Phase 5 — Feature 19: Category & Brand Management. Admin CRUD for categories (tree view, drag reorder/reparent, slug/path recalculation) and brands (simple list CRUD). Audit logging already in place.
 
 ## Open questions
 
 - SSLCommerz API keys needed to un-hide SSLCommerz from payment selector
-- Why did the repository-based page pattern cause the wishlist tab to not fetch data? Exact root cause of the Suspense + repository interaction wasn't fully diagnosed.
+- Why did the repository-based page pattern cause the wishlist tab to not fetch data?
+- Storage migration `20260617160000` needs manual deployment (Supabase CLI `db push` failed because project isn't linked locally)

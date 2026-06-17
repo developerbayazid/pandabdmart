@@ -8,7 +8,14 @@ import type {
     RelatedProduct,
 } from '@/types/product';
 import type { ShopFilters, ShopFilterOptions, ShopPageResult, ShopProduct } from '@/types/shop';
-import { PRODUCTS_PER_PAGE } from '@/lib/constants/pagination';
+import type {
+    AdminProductListItem,
+    AdminProductFilters,
+    AdminCategoryOption,
+    AdminBrandOption,
+    AdminAttributeOption,
+} from '@/types/admin-product';
+import { PRODUCTS_PER_PAGE, ADMIN_PRODUCTS_PER_PAGE } from '@/lib/constants/pagination';
 
 async function getCategoryIds(slugs: string[]): Promise<string[]> {
     const supabase = await createClient();
@@ -430,6 +437,429 @@ export async function getRelatedProducts(
             categoryName: category.name,
             categorySlug: category.slug,
             stock,
+        };
+    });
+}
+
+// ─── Admin CRUD ───────────────────────────────────────────────
+
+export async function getAdminProducts(
+    filters: AdminProductFilters = {},
+): Promise<{ products: AdminProductListItem[]; total: number; page: number; totalPages: number }> {
+    const supabase = await createClient();
+
+    let query = supabase
+        .from('products')
+        .select(
+            'id, name, slug, type, status, created_at, category:categories!inner(id, name), brand:brands!inner(id, name), variants:product_variants(id, price, stock, variant_images(url, is_primary))',
+            { count: 'exact' },
+        )
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+    if (filters.search) {
+        query = query.ilike('name', `%${filters.search}%`);
+    }
+    if (filters.categoryId) {
+        query = query.eq('category_id', filters.categoryId);
+    }
+    if (filters.brandId) {
+        query = query.eq('brand_id', filters.brandId);
+    }
+    if (filters.status) {
+        query = query.eq('status', filters.status);
+    }
+
+    const page = filters.page ?? 1;
+    const from = (page - 1) * ADMIN_PRODUCTS_PER_PAGE;
+    const to = from + ADMIN_PRODUCTS_PER_PAGE - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+        console.error('[repositories/product] getAdminProducts:', error);
+        return { products: [], total: 0, page: 1, totalPages: 0 };
+    }
+
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / ADMIN_PRODUCTS_PER_PAGE));
+
+    const products: AdminProductListItem[] = (data ?? []).map((row) => {
+        const category = row.category as unknown as { id: string; name: string };
+        const brand = row.brand as unknown as { id: string; name: string };
+        const variants = (row.variants as Record<string, unknown>[]) ?? [];
+
+        let totalStock = 0;
+        let minPrice: number | null = null;
+        let image: string | null = null;
+
+        for (const v of variants) {
+            totalStock += (v.stock as number) ?? 0;
+            const price = (v.price as number) ?? 0;
+            if (minPrice === null || price < minPrice) {
+                minPrice = price;
+            }
+            if (!image) {
+                const images = (v.variant_images as Record<string, unknown>[]) ?? [];
+                const primary = images.find((img) => img.is_primary as boolean);
+                if (primary) image = primary.url as string;
+                else if (images.length > 0) image = images[0].url as string;
+            }
+        }
+
+        return {
+            id: row.id as string,
+            name: row.name as string,
+            slug: row.slug as string,
+            type: (row.type as 'simple' | 'variable') ?? 'simple',
+            status: (row.status as 'draft' | 'active' | 'archived') ?? 'draft',
+            categoryName: category.name,
+            brandName: brand.name,
+            variantCount: variants.length,
+            totalStock: totalStock > 0 ? totalStock : 0,
+            minPrice,
+            image,
+            createdAt: row.created_at as string,
+        };
+    });
+
+    return { products, total, page, totalPages };
+}
+
+export async function getAdminProductById(
+    id: string,
+): Promise<Record<string, unknown> | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('products')
+        .select(
+            `id, name, slug, type, status, description, specs, category_id, brand_id,
+            category:categories!inner(id, name),
+            brand:brands!inner(id, name),
+            variants:product_variants(id, sku, price, compare_price, stock, reserved_stock, sold_count, is_active, variant_images(url, is_primary, sort_order), variant_attribute_values(attribute_value_id, attribute_values(id, value, attribute_id, attributes(id, name))))`,
+        )
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+
+    if (error) {
+        console.error('[repositories/product] getAdminProductById:', error);
+        return null;
+    }
+
+    return data as unknown as Record<string, unknown>;
+}
+
+export async function createProduct(
+    data: {
+        name: string;
+        slug: string;
+        type: 'simple' | 'variable';
+        status: 'draft' | 'active' | 'archived';
+        categoryId: string;
+        brandId: string;
+        description: string;
+        specs: Record<string, unknown>;
+    },
+): Promise<string> {
+    const supabase = await createClient();
+
+    const { data: product, error } = await supabase
+        .from('products')
+        .insert({
+            name: data.name,
+            slug: data.slug,
+            type: data.type,
+            status: data.status,
+            category_id: data.categoryId,
+            brand_id: data.brandId,
+            description: data.description,
+            specs: data.specs,
+        })
+        .select('id')
+        .single();
+
+    if (error) {
+        console.error('[repositories/product] createProduct:', error);
+        throw new Error(error.message);
+    }
+
+    return product.id as string;
+}
+
+export async function updateProduct(
+    id: string,
+    data: {
+        name?: string;
+        slug?: string;
+        type?: 'simple' | 'variable';
+        status?: 'draft' | 'active' | 'archived';
+        categoryId?: string;
+        brandId?: string;
+        description?: string;
+        specs?: Record<string, unknown>;
+    },
+): Promise<void> {
+    const supabase = await createClient();
+
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.slug !== undefined) updates.slug = data.slug;
+    if (data.type !== undefined) updates.type = data.type;
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.categoryId !== undefined) updates.category_id = data.categoryId;
+    if (data.brandId !== undefined) updates.brand_id = data.brandId;
+    if (data.description !== undefined) updates.description = data.description;
+    if (data.specs !== undefined) updates.specs = data.specs;
+
+    const { error } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', id);
+
+    if (error) {
+        console.error('[repositories/product] updateProduct:', error);
+        throw new Error(error.message);
+    }
+}
+
+export async function softDeleteProduct(id: string): Promise<void> {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('products')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+
+    if (error) {
+        console.error('[repositories/product] softDeleteProduct:', error);
+        throw new Error(error.message);
+    }
+}
+
+export async function createVariant(
+    data: {
+        productId: string;
+        sku: string;
+        price: number;
+        comparePrice: number | null;
+        stock: number;
+        isActive: boolean;
+        attributeValueIds: string[];
+        images: { url: string; isPrimary: boolean; sortOrder: number }[];
+    },
+): Promise<string> {
+    const supabase = await createClient();
+
+    const { data: variant, error } = await supabase
+        .from('product_variants')
+        .insert({
+            product_id: data.productId,
+            sku: data.sku,
+            price: data.price,
+            compare_price: data.comparePrice ?? null,
+            stock: data.stock,
+            is_active: data.isActive,
+        })
+        .select('id')
+        .single();
+
+    if (error) {
+        console.error('[repositories/product] createVariant:', error);
+        throw new Error(error.message);
+    }
+
+    const variantId = variant.id as string;
+
+    if (data.attributeValueIds.length > 0) {
+        const attrRows = data.attributeValueIds.map((avId) => ({
+            variant_id: variantId,
+            attribute_value_id: avId,
+        }));
+        const { error: attrError } = await supabase
+            .from('variant_attribute_values')
+            .insert(attrRows);
+        if (attrError) {
+            console.error('[repositories/product] createVariant attrs:', attrError);
+            throw new Error(attrError.message);
+        }
+    }
+
+    if (data.images.length > 0) {
+        const imgRows = data.images.map((img, idx) => ({
+            variant_id: variantId,
+            url: img.url,
+            is_primary: img.isPrimary,
+            sort_order: img.sortOrder,
+        }));
+        const { error: imgError } = await supabase
+            .from('variant_images')
+            .insert(imgRows);
+        if (imgError) {
+            console.error('[repositories/product] createVariant images:', imgError);
+            throw new Error(imgError.message);
+        }
+    }
+
+    return variantId;
+}
+
+export async function updateVariant(
+    id: string,
+    data: {
+        sku?: string;
+        price?: number;
+        comparePrice?: number | null;
+        stock?: number;
+        isActive?: boolean;
+        attributeValueIds?: string[];
+        images?: { url: string; isPrimary: boolean; sortOrder: number }[];
+    },
+): Promise<void> {
+    const supabase = await createClient();
+
+    const updates: Record<string, unknown> = {};
+    if (data.sku !== undefined) updates.sku = data.sku;
+    if (data.price !== undefined) updates.price = data.price;
+    if (data.comparePrice !== undefined) updates.compare_price = data.comparePrice;
+    if (data.stock !== undefined) updates.stock = data.stock;
+    if (data.isActive !== undefined) updates.is_active = data.isActive;
+
+    if (Object.keys(updates).length > 0) {
+        const { error } = await supabase
+            .from('product_variants')
+            .update(updates)
+            .eq('id', id);
+        if (error) {
+            console.error('[repositories/product] updateVariant:', error);
+            throw new Error(error.message);
+        }
+    }
+
+    if (data.attributeValueIds !== undefined) {
+        await supabase
+            .from('variant_attribute_values')
+            .delete()
+            .eq('variant_id', id);
+
+        if (data.attributeValueIds.length > 0) {
+            const attrRows = data.attributeValueIds.map((avId) => ({
+                variant_id: id,
+                attribute_value_id: avId,
+            }));
+            const { error: attrError } = await supabase
+                .from('variant_attribute_values')
+                .insert(attrRows);
+            if (attrError) {
+                console.error('[repositories/product] updateVariant attrs:', attrError);
+                throw new Error(attrError.message);
+            }
+        }
+    }
+
+    if (data.images !== undefined) {
+        await supabase
+            .from('variant_images')
+            .delete()
+            .eq('variant_id', id);
+
+        if (data.images.length > 0) {
+            const imgRows = data.images.map((img, idx) => ({
+                variant_id: id,
+                url: img.url,
+                is_primary: img.isPrimary,
+                sort_order: img.sortOrder,
+            }));
+            const { error: imgError } = await supabase
+                .from('variant_images')
+                .insert(imgRows);
+            if (imgError) {
+                console.error('[repositories/product] updateVariant images:', imgError);
+                throw new Error(imgError.message);
+            }
+        }
+    }
+}
+
+export async function deleteVariant(id: string): Promise<void> {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('product_variants')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('[repositories/product] deleteVariant:', error);
+        throw new Error(error.message);
+    }
+}
+
+export async function getCategoriesForSelect(): Promise<AdminCategoryOption[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, path')
+        .order('path', { ascending: true });
+
+    if (error) {
+        console.error('[repositories/product] getCategoriesForSelect:', error);
+        return [];
+    }
+
+    return (data ?? []).map((row) => ({
+        id: row.id as string,
+        name: row.name as string,
+        fullPath: (row.path as string) ?? row.name,
+    }));
+}
+
+export async function getBrandsForSelect(): Promise<AdminBrandOption[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('brands')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+    if (error) {
+        console.error('[repositories/product] getBrandsForSelect:', error);
+        return [];
+    }
+
+    return (data ?? []).map((row) => ({
+        id: row.id as string,
+        name: row.name as string,
+    }));
+}
+
+export async function getAttributesForSelect(): Promise<AdminAttributeOption[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('attributes')
+        .select(
+            'id, name, attribute_values:attribute_values!inner(id, value)',
+        )
+        .order('name', { ascending: true });
+
+    if (error) {
+        console.error('[repositories/product] getAttributesForSelect:', error);
+        return [];
+    }
+
+    return (data ?? []).map((row) => {
+        const values = (row.attribute_values as Record<string, unknown>[]) ?? [];
+        return {
+            id: row.id as string,
+            name: row.name as string,
+            values: values.map((v) => ({
+                id: v.id as string,
+                value: v.value as string,
+            })),
         };
     });
 }

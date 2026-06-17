@@ -1,31 +1,21 @@
-import { Suspense } from 'react';
-import { getUser } from '@/lib/auth/get-user';
-import { redirect } from 'next/navigation';
-import { PageSpinner } from '@/components/ui/PageSpinner';
+import { getDashboardData } from '@/services/admin.service';
+import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { requireRole } from '@/lib/auth/require-role';
 
 export default async function AdminDashboardPage() {
-    const user = await getUser();
+    await requireRole('admin', 'shop_manager');
 
-    if (!user || !['admin', 'shop_manager'].includes(user.role)) {
-        redirect('/');
+    const result = await getDashboardData();
+
+    if (!result.success || !result.data) {
+        return (
+            <div className="bg-surface border border-border rounded-2xl p-8 text-center">
+                <p className="text-[14px] text-text-secondary">
+                    {result.error || 'Failed to load dashboard data'}
+                </p>
+            </div>
+        );
     }
 
-    return (
-        <Suspense fallback={<PageSpinner />}>
-            <AdminDashboardContent />
-        </Suspense>
-    );
-}
-
-function AdminDashboardContent() {
-    return (
-        <div>
-            <h2 className="font-[family-name:var(--font-serif)] text-[28px] font-normal text-text-primary mb-6">
-                Admin Dashboard
-            </h2>
-            <div className="bg-surface border border-border rounded-2xl p-6">
-                <p className="text-sm text-text-secondary">Analytics and stats will appear here.</p>
-            </div>
-        </div>
-    );
+    return <AdminDashboard initialData={result.data} />;
 }

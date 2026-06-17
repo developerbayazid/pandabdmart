@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/auth/get-user';
 import { createClient } from '@/lib/supabase/server';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 
 export default async function AdminLayout({
     children,
@@ -18,7 +19,8 @@ export default async function AdminLayout({
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="bg-surface border-b border-border h-16 flex items-center justify-between px-6">
+            {/* Top header */}
+            <header className="bg-surface border-b border-border h-16 flex items-center justify-between px-6 fixed top-0 right-0 left-0 z-50">
                 <Link href="/" className="text-[15px] font-semibold text-text-primary">
                     PandaBD Mart
                 </Link>
@@ -39,27 +41,10 @@ export default async function AdminLayout({
                     </form>
                 </div>
             </header>
-            <div className="flex">
-                <aside className="w-60 min-h-[calc(100vh-64px)] bg-surface border-r border-border p-6">
-                    <nav className="space-y-1">
-                        <AdminSidebarLink href="/admin/dashboard">Dashboard</AdminSidebarLink>
-                        <AdminSidebarLink href="/admin/products">Products</AdminSidebarLink>
-                        <AdminSidebarLink href="/admin/categories">Categories</AdminSidebarLink>
-                        <AdminSidebarLink href="/admin/brands">Brands</AdminSidebarLink>
-                        <AdminSidebarLink href="/admin/orders">Orders</AdminSidebarLink>
-                        <AdminSidebarLink href="/admin/payments">Payments</AdminSidebarLink>
-                        {isAdmin && (
-                            <>
-                                <AdminSidebarLink href="/admin/customers">Customers</AdminSidebarLink>
-                                <AdminSidebarLink href="/admin/coupons">Coupons</AdminSidebarLink>
-                                <AdminSidebarLink href="/admin/shipping">Shipping</AdminSidebarLink>
-                                <AdminSidebarLink href="/admin/settings">Settings</AdminSidebarLink>
-                                <AdminSidebarLink href="/admin/audit-logs">Audit Logs</AdminSidebarLink>
-                            </>
-                        )}
-                    </nav>
-                </aside>
-                <main className="flex-1 p-8">{children}</main>
+
+            <div className="flex pt-16">
+                <AdminSidebar isAdmin={isAdmin} />
+                <main className="flex-1 ml-[280px] p-8">{children}</main>
             </div>
         </div>
     );
@@ -70,15 +55,4 @@ async function signOut() {
     const supabase = await createClient();
     await supabase.auth.signOut();
     redirect('/signin');
-}
-
-function AdminSidebarLink({ href, children }: { href: string; children: React.ReactNode }) {
-    return (
-        <Link
-            href={href}
-            className="block px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-secondary rounded-md transition-colors"
-        >
-            {children}
-        </Link>
-    );
 }

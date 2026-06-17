@@ -6,7 +6,11 @@ import { User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 
-export function AuthNavActions() {
+type AuthNavActionsProps = {
+    isAdmin: boolean;
+};
+
+export function AuthNavActions({ isAdmin }: AuthNavActionsProps) {
     const [session, setSession] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -15,7 +19,9 @@ export function AuthNavActions() {
             setSession(!!data.session);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(!!session);
         });
 
@@ -33,12 +39,21 @@ export function AuthNavActions() {
     if (session) {
         return (
             <div className="flex items-center gap-3">
-                <Link
-                    href="/account"
-                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-                >
-                    Account
-                </Link>
+                {isAdmin ? (
+                    <Link
+                        href="/admin"
+                        className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                        Dashboard
+                    </Link>
+                ) : (
+                    <Link
+                        href="/account"
+                        className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                        Account
+                    </Link>
+                )}
                 <SignOutButton />
             </div>
         );

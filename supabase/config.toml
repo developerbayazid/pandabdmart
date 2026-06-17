@@ -2,7 +2,6 @@ project_id = "gufkxeuuzkyaqtavrcpr"
 
 [db]
 port = 5432
-schema = "public"
 
 [api]
 enabled = true
