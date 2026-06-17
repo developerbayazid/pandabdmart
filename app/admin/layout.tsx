@@ -18,9 +18,9 @@ export default async function AdminLayout({
     const isAdmin = user.role === 'admin';
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="h-screen flex flex-col bg-background">
             {/* Top header */}
-            <header className="bg-surface border-b border-border h-16 flex items-center justify-between px-6 fixed top-0 right-0 left-0 z-50">
+            <header className="bg-surface border-b border-border h-16 flex items-center justify-between px-6 shrink-0">
                 <Link href="/" className="text-[15px] font-semibold text-text-primary">
                     PandaBD Mart
                 </Link>
@@ -42,9 +42,10 @@ export default async function AdminLayout({
                 </div>
             </header>
 
-            <div className="flex pt-16">
+            {/* Body: sidebar + main */}
+            <div className="flex flex-1 overflow-hidden">
                 <AdminSidebar isAdmin={isAdmin} />
-                <main className="flex-1 ml-[280px] p-8">{children}</main>
+                <main className="flex-1 p-8 overflow-y-auto">{children}</main>
             </div>
         </div>
     );

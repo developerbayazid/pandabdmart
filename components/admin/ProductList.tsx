@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -133,12 +134,12 @@ export function ProductList({ initialData, filterOptions, currentFilters }: Prod
                             Clear all filters
                         </button>
                     ) : (
-                        <a
+                        <Link
                             href="/admin/products/new"
                             className="inline-block mt-3 px-4 py-2 bg-surface-inverse text-text-inverse text-[14px] font-medium rounded-md hover:bg-surface-inverse-hover transition-colors"
                         >
                             Create your first product
-                        </a>
+                        </Link>
                     )}
                 </div>
             ) : (
@@ -209,12 +210,12 @@ export function ProductList({ initialData, filterOptions, currentFilters }: Prod
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <a
+                                                <Link
                                                     href={`/admin/products/${product.id}/edit`}
                                                     className="text-[13px] text-text-secondary hover:text-text-primary transition-colors"
                                                 >
                                                     Edit
-                                                </a>
+                                                </Link>
                                                 <DeleteProductButton productId={product.id} productName={product.name} />
                                             </div>
                                         </TableCell>

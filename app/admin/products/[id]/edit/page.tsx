@@ -1,13 +1,23 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getProductFormData } from '@/services/product.service';
 import { ProductForm } from '@/components/admin/ProductForm';
 import { requireRole } from '@/lib/auth/require-role';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
 type PageProps = {
     params: Promise<{ id: string }>;
 };
 
-export default async function EditProductPage({ params }: PageProps) {
+export default function EditProductPage({ params }: PageProps) {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <EditProductContent params={params} />
+        </Suspense>
+    );
+}
+
+async function EditProductContent({ params }: { params: Promise<{ id: string }> }) {
     await requireRole('admin', 'shop_manager');
 
     const { id } = await params;

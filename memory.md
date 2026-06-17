@@ -1,65 +1,57 @@
-# Memory — Feature 18: Product & Variant Management + Image Fix
+# Memory — Feature 18 + Admin UX Polish
 
-Last updated: 2026-06-17 07:48
+Last updated: 2026-06-17 08:25
 
 ## What was built
 
-**Feature 18 — Product & Variant Management (Admin CRUD):**
-
-New files:
-- `repositories/audit.repository.ts` — `insertAuditLog()`, `getAuditLogs()`
-- `services/audit.service.ts` — `logAuditEvent()` wrapper
-- `services/product.service.ts` — full CRUD with validation + audit
+**Feature 18 — Product & Variant Management:**
+- `repositories/audit.repository.ts`, `services/audit.service.ts` — audit logging infra
+- `services/product.service.ts` — full admin CRUD with validation + audit
 - `actions/product.actions.ts` — Server Actions with storefront revalidation
-- `types/admin-product.ts` — all admin product types
+- `types/admin-product.ts` — admin product types
 - `lib/upload.ts` — Supabase Storage image upload (browser client)
-- `components/admin/ProductList.tsx` — search/filter/pagination table
-- `components/admin/ProductForm.tsx` — create/edit form with variant cards
+- `components/admin/ProductList.tsx` — listing table with search/filter/pagination
+- `components/admin/ProductForm.tsx` — create/edit form with variant cards + ImageUpload
 - `components/admin/ImageUpload.tsx` — multi-image upload with preview
-- `app/admin/products/page.tsx` — listing page (server)
-- `app/admin/products/new/page.tsx` — create page (server)
-- `app/admin/products/[id]/edit/page.tsx` — edit page (server)
+- `app/admin/products/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx`
+- Extended `repositories/product.repository.ts` with 11 admin CRUD functions
+- `next.config.ts` — `images.remotePatterns` for Supabase storage
+- `supabase/migrations/20260617160000_add_storage_public_select.sql` — pending manual deployment
 
-**Image display fix:**
-- `supabase/migrations/20260617160000_add_storage_public_select.sql` — public SELECT policy on storage.objects
-- `next.config.ts` — added `images.remotePatterns` for Supabase storage domain
-- `actions/product.actions.ts` — added `revalidatePath('/shop')` and `revalidatePath('/')` after all mutations
-
-Modified files:
-- `repositories/product.repository.ts` — 11 admin CRUD functions added
-- `lib/constants/pagination.ts` — `ADMIN_PRODUCTS_PER_PAGE = 20`
-- `supabase/config.toml` — removed invalid `db.schema` key
+**Admin UX Polish (post-review fixes):**
+- Sidebar restructured: Catalog group removed, Products/Categories/Brands are top-level nav items
+- Scrollbar eliminated: pure flexbox layout (`h-screen flex flex-col`, `overflow-hidden` on body row, internal scrolling)
+- Suspense on all admin pages: dashboard, product listing, create, edit
+- `<a>` tags replaced with `<Link>` for SPA navigation
 
 ## Decisions made
 
-- **Audit logging is non-blocking.** `logAuditEvent` catches errors silently — business mutations complete even if audit fails. This matches code-standards.md philosophy ("never let one failure crash an order").
-- **Variant CRUD is sequential in repository layer**, not in an RPC. Review noted this as non-atomic risk. Fixed by throwing errors on attribute/image failures instead of silent `console.error`.
-- **ProductForm error handling fixed post-review.** Every `createVariantAction`/`updateVariantAction` result is now checked for `.success`; form stops on first failure with error displayed.
-- **`updateVariant` now validates `price >= 0` and `stock >= 0`** matching `createVariant`.
-- **Storage bucket SELECT policy was missing from initial migration.** Added via `20260617160000_add_storage_public_select.sql`. Without it, anonymous users get 403 on image URLs.
-- **Next.js `<Image>` requires `remotePatterns`.** Added Supabase storage domain to `next.config.ts`.
-- **Storefront revalidation added** to all product/variant mutations to flush ISR cache after admin edits (shop, homepage, product pages).
+- **Layout: pure flexbox, no positioning hacks.** `h-screen flex flex-col` → header (shrink-0) + body row (flex-1 overflow-hidden) → sidebar (shrink-0 w-[280px]) + main (flex-1 overflow-y-auto). No `fixed`, no `absolute`, no `calc`, no JS body manipulation.
+- **Sidebar nav is top-level, not collapsible Catalog group.** Simpler, clearer information architecture.
+- **Sidebar nav has `overflow-y-auto`** for when content exceeds viewport — this is a deliberate sidebar scrollbar, not a bug.
+- **All links use `<Link>`** for client-side SPA navigation, no full-page reloads.
 
 ## Problems solved
 
-- **Product images missing in frontend after admin upload.** Root causes: (1) No public SELECT policy on `storage.objects` for `product-images` bucket — anonymous reads returned 403. (2) Next.js `<Image>` rejected external Supabase URLs without `remotePatterns`. (3) Storefront ISR pages served stale cached content for up to 5 minutes.
-- **Hard-coded FK constraint name.** Changed `users!audit_logs_actor_id_fkey` to `users!inner` to avoid deploy breakage.
-- **Unused imports.** Removed `Filter`, `Input`, `Select`, `AdminCategoryOption`, `AdminBrandOption` from components.
+- **Product images not showing in frontend.** Root causes: (1) Missing public SELECT policy on storage.objects, (2) Missing Next.js images.remotePatterns, (3) Storefront ISR not revalidated after admin edits.
+- **Scrollbar on admin pages.** Root cause: `fixed`/`absolute` positioning with `min-h-full` body created overflow. Fixed by pure flexbox layout with `h-screen overflow-hidden`.
+- **Full page reload on "Edit" click.** `<a>` tags replaced with Next.js `<Link>`.
+- **No Suspense on product pages.** Added sync wrapper + async content pattern to all admin routes.
 
 ## Current state
 
-- Phase 5: Features 17 and 18 complete. Build: clean (0 TS errors).
-- Admin dashboard: `/admin/dashboard` with live stats + realtime.
-- Admin products: `/admin/products` listing, create, edit, delete with full CRUD + audit.
-- Image upload pipeline working (browser → Supabase Storage → public URL → variant_images → frontend display).
-- Storage migration `20260617160000_add_storage_public_select.sql` **pending manual deployment** — run via Supabase dashboard SQL editor.
+- Phase 5: Features 17-18 complete with UX polish. Build: clean (0 TS errors).
+- Admin dashboard: `/admin/dashboard` with Suspense + realtime
+- Admin products: full CRUD with Suspense + SPA navigation + image upload
+- Storage migration `20260617160000` pending manual deployment
+- Admin layout: no scrollbar, clean flexbox, all `<Link>` navigation
 
 ## Next session starts with
 
-Phase 5 — Feature 19: Category & Brand Management. Admin CRUD for categories (tree view, drag reorder/reparent, slug/path recalculation) and brands (simple list CRUD). Audit logging already in place.
+Phase 5 — Feature 19: Category & Brand Management.
 
 ## Open questions
 
-- SSLCommerz API keys needed to un-hide SSLCommerz from payment selector
-- Why did the repository-based page pattern cause the wishlist tab to not fetch data?
-- Storage migration `20260617160000` needs manual deployment (Supabase CLI `db push` failed because project isn't linked locally)
+- SSLCommerz API keys needed
+- Wishlist tab Suspense + repository interaction root cause not diagnosed
+- Storage migration `20260617160000` needs manual deployment via Supabase dashboard

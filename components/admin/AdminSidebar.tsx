@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
     Package,
+    FolderTree,
+    Building2,
     ShoppingCart,
     CreditCard,
     Users,
@@ -13,7 +14,6 @@ import {
     Truck,
     Settings,
     FileText,
-    ChevronDown,
 } from 'lucide-react';
 
 type AdminSidebarProps = {
@@ -22,16 +22,10 @@ type AdminSidebarProps = {
 
 export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
     const pathname = usePathname();
-    const [catalogOpen, setCatalogOpen] = useState(
-        pathname.startsWith('/admin/products') ||
-            pathname.startsWith('/admin/categories') ||
-            pathname.startsWith('/admin/brands'),
-    );
 
     return (
-        <aside className="w-[280px] min-h-[calc(100vh-64px)] bg-surface border-r border-border fixed left-0 top-16 bottom-0 overflow-y-auto flex flex-col z-40">
-            {/* Brand */}
-            <Link href="/admin/dashboard" className="flex items-center gap-3 px-6 pt-6 pb-2">
+        <aside className="w-[280px] bg-surface border-r border-border shrink-0 flex flex-col">
+            <Link href="/admin/dashboard" className="flex items-center gap-3 px-6 pt-5 pb-2">
                 <div className="w-9 h-9 rounded-[10px] bg-surface-inverse flex items-center justify-center shrink-0">
                     <Package className="w-5 h-5 text-text-inverse" />
                 </div>
@@ -40,7 +34,7 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                 </span>
             </Link>
 
-            <nav className="flex-1 px-4 py-4">
+            <nav className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
                 <NavSection label="Menu">
                     <NavItem
                         href="/admin/dashboard"
@@ -49,44 +43,27 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                     >
                         Dashboard
                     </NavItem>
-
-                    <div>
-                        <button
-                            onClick={() => setCatalogOpen(!catalogOpen)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary rounded-lg transition-colors cursor-pointer"
-                        >
-                            <Package className="w-5 h-5 shrink-0" />
-                            <span className="flex-1 text-left">Catalog</span>
-                            <ChevronDown
-                                className={`w-4 h-4 shrink-0 text-text-muted transition-transform ${
-                                    catalogOpen ? 'rotate-180' : ''
-                                }`}
-                            />
-                        </button>
-                        {catalogOpen && (
-                            <div className="pl-[35px] pr-2 pb-1 space-y-0.5 pt-0.5">
-                                <NavSubItem
-                                    href="/admin/products"
-                                    active={pathname.startsWith('/admin/products')}
-                                >
-                                    Products
-                                </NavSubItem>
-                                <NavSubItem
-                                    href="/admin/categories"
-                                    active={pathname.startsWith('/admin/categories')}
-                                >
-                                    Categories
-                                </NavSubItem>
-                                <NavSubItem
-                                    href="/admin/brands"
-                                    active={pathname.startsWith('/admin/brands')}
-                                >
-                                    Brands
-                                </NavSubItem>
-                            </div>
-                        )}
-                    </div>
-
+                    <NavItem
+                        href="/admin/products"
+                        icon={Package}
+                        active={pathname.startsWith('/admin/products')}
+                    >
+                        Products
+                    </NavItem>
+                    <NavItem
+                        href="/admin/categories"
+                        icon={FolderTree}
+                        active={pathname.startsWith('/admin/categories')}
+                    >
+                        Categories
+                    </NavItem>
+                    <NavItem
+                        href="/admin/brands"
+                        icon={Building2}
+                        active={pathname.startsWith('/admin/brands')}
+                    >
+                        Brands
+                    </NavItem>
                     <NavItem
                         href="/admin/orders"
                         icon={ShoppingCart}
@@ -118,7 +95,6 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                             active={pathname.startsWith('/admin/coupons')}
                         >
                             Coupons
-                            <NewBadge />
                         </NavItem>
                         <NavItem
                             href="/admin/shipping"
@@ -145,7 +121,7 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                 )}
             </nav>
 
-            <div className="px-6 py-4 border-t border-border">
+            <div className="px-6 py-4 border-t border-border shrink-0">
                 <div className="text-[13px] font-semibold text-text-primary">
                     PandaBD Mart
                 </div>
@@ -165,7 +141,7 @@ function NavSection({
     children: React.ReactNode;
 }) {
     return (
-        <div className="mb-6">
+        <div className="mb-5">
             <div className="px-3 mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
                 {label}
             </div>
@@ -188,7 +164,7 @@ function NavItem({
     return (
         <Link
             href={href}
-            className={`flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium rounded-lg transition-colors ${
+            className={`flex items-center gap-3 px-3 py-2 text-[14px] font-medium rounded-lg transition-colors ${
                 active
                     ? 'bg-surface-secondary text-text-primary'
                     : 'text-text-secondary hover:text-text-primary hover:bg-surface-secondary'
@@ -197,41 +173,5 @@ function NavItem({
             <Icon className="w-5 h-5 shrink-0" />
             <span className="flex-1">{children}</span>
         </Link>
-    );
-}
-
-function NavSubItem({
-    href,
-    active,
-    children,
-}: {
-    href: string;
-    active: boolean;
-    children: React.ReactNode;
-}) {
-    return (
-        <Link
-            href={href}
-            className={`flex items-center gap-2 px-3 py-2 text-[13px] font-medium rounded-md transition-colors ${
-                active
-                    ? 'bg-surface-secondary text-text-primary'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-secondary'
-            }`}
-        >
-            <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                    active ? 'bg-text-primary' : 'bg-text-muted'
-                }`}
-            />
-            {children}
-        </Link>
-    );
-}
-
-function NewBadge() {
-    return (
-        <span className="text-[10px] font-medium bg-success-light text-success-foreground px-1.5 py-0.5 rounded-sm">
-            NEW
-        </span>
     );
 }

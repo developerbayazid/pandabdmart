@@ -1,8 +1,18 @@
+import { Suspense } from 'react';
 import { getDashboardData } from '@/services/admin.service';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { requireRole } from '@/lib/auth/require-role';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
-export default async function AdminDashboardPage() {
+export default function AdminDashboardPage() {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+async function DashboardContent() {
     await requireRole('admin', 'shop_manager');
 
     const result = await getDashboardData();

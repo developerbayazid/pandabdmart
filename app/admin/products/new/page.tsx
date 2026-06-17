@@ -1,8 +1,18 @@
+import { Suspense } from 'react';
 import { getFormOptions } from '@/services/product.service';
 import { ProductForm } from '@/components/admin/ProductForm';
 import { requireRole } from '@/lib/auth/require-role';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 
-export default async function NewProductPage() {
+export default function NewProductPage() {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <NewProductContent />
+        </Suspense>
+    );
+}
+
+async function NewProductContent() {
     await requireRole('admin', 'shop_manager');
 
     const optionsResult = await getFormOptions();

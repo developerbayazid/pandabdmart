@@ -1,15 +1,26 @@
+import { Suspense } from 'react';
+import Link from 'next/link';
 import { getAdminProductList, getFormOptions } from '@/services/product.service';
 import { ProductList } from '@/components/admin/ProductList';
 import { requireRole } from '@/lib/auth/require-role';
+import { PageSpinner } from '@/components/ui/PageSpinner';
 import type { AdminProductFilters } from '@/types/admin-product';
 
 type SearchParams = Promise<Record<string, string | undefined>>;
 
-export default async function AdminProductsPage({
+export default function AdminProductsPage({
     searchParams,
 }: {
     searchParams: SearchParams;
 }) {
+    return (
+        <Suspense fallback={<PageSpinner />}>
+            <ProductsContent searchParams={searchParams} />
+        </Suspense>
+    );
+}
+
+async function ProductsContent({ searchParams }: { searchParams: SearchParams }) {
     await requireRole('admin', 'shop_manager');
 
     const params = await searchParams;
@@ -36,12 +47,12 @@ export default async function AdminProductsPage({
                         Manage your product catalog
                     </p>
                 </div>
-                <a
+                <Link
                     href="/admin/products/new"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-surface-inverse text-text-inverse text-[14px] font-medium rounded-md hover:bg-surface-inverse-hover transition-colors"
                 >
                     + Add Product
-                </a>
+                </Link>
             </div>
 
             <ProductList
