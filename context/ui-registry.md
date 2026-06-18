@@ -811,11 +811,86 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 ### Admin — Catalog Management
 
-<!-- ProductsTable, ProductForm, VariantEditor, CategoryTree, BrandList -->
+#### CategoryTree
+- **File:** `components/admin/CategoryTree.tsx`
+- **Classes:**
+  - Tree item row: `flex items-center gap-3 px-3 py-2.5 hover:bg-surface-secondary transition-colors group` with dynamic `paddingLeft` based on depth
+  - Item name: `text-[14px] font-medium text-text-primary truncate`
+  - Item slug: `text-[12px] text-text-muted`
+  - Expand toggle: `shrink-0 p-0.5 rounded hover:bg-surface-tertiary transition-colors` with ChevronRight/Down icons `w-4 h-4 text-text-muted`
+  - Action buttons: `opacity-0 group-hover:opacity-100 transition-opacity` with `p-1.5 text-text-muted hover:text-text-primary rounded hover:bg-surface-tertiary`
+  - Delete button: `p-1.5 text-text-muted hover:text-error rounded hover:bg-error-light`
+  - Count badges: `Badge variant="neutral"` for subcategory and product counts
+  - Form card: Same card shell as ProductForm (`bg-surface border border-border rounded-2xl p-6 shadow-[...]`)
+  - Form heading: `text-[16px] font-semibold text-text-primary`
+  - Form label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Form input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Form select: Same as input + `appearance-none`
+  - Error banner: `bg-error-light border border-error/20 rounded-md px-4 py-3 text-[14px] text-error`
+  - Empty state: `p-12 text-center` with icon circle `w-16 h-16 rounded-full bg-surface-secondary` + FolderTree icon + CTA button
+- **Props:** `initialData: AdminCategoryListResult | null`, `parentOptions: AdminParentCategoryOption[]`
+- **Behavior:** Client component. Builds tree from flat list via `buildTree()`. Expand/collapse per node with Expand All / Collapse All buttons. Inline create/edit form with name, slug (auto-generated), parent category dropdown (indented). Delete button with loading state, rejects if subcategories or products exist. Creates directly via Server Actions, full page reload on save.
+
+#### BrandList
+- **File:** `components/admin/BrandList.tsx`
+- **Classes:**
+  - Search input: `w-full bg-surface border border-border rounded-md pl-10 pr-4 py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Add button: `Button variant="primary" size="sm"` with `Plus` icon
+  - Form card: Same pattern as CategoryTree form card
+  - Table: Same Table pattern as ProductList
+  - Product count cell: `Badge variant="neutral"`
+  - Empty state: Same pattern as CategoryTree empty state with Search icon
+- **Props:** `initialData: AdminBrandListResult | null`, `currentSearch: string`
+- **Behavior:** Client component. URL-driven search and pagination via `useSearchParams()`/`useRouter()`. Inline create/edit form with name and slug (auto-generated from name). Delete with loading state, rejects if products exist. Uses `router.refresh()` after mutations.
 
 ### Admin — Order & Payment Management
 
-<!-- OrdersTable, OrderDetailView, StatusUpdateDropdown, PendingPaymentsQueue, ApproveRejectButtons -->
+#### OrderList
+- **File:** `components/admin/OrderList.tsx`
+- **Classes:**
+  - Search input: `w-full bg-surface border border-border rounded-md pl-10 pr-4 py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Filter select: `bg-surface border border-border rounded-md px-3 py-2 text-[14px] text-text-primary focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Date input: `bg-surface border border-border rounded-md px-3 py-2 text-[14px] text-text-primary focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Table card: `bg-surface border border-border rounded-2xl overflow-hidden shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Order ID: `text-[14px] font-mono text-text-primary`
+  - Customer name: `text-[14px] font-medium text-text-primary`
+  - Customer email: `text-[12px] text-text-muted`
+  - Empty state: `bg-surface border border-border rounded-2xl p-12 text-center` with `text-[14px] text-text-secondary`
+  - View link: `text-[13px] text-text-secondary hover:text-text-primary transition-colors`
+- **Props:** `initialData: { orders: AdminOrderListItem[]; total: number; page: number; totalPages: number } | null`, `currentFilters: AdminOrderFilters`
+- **Behavior:** URL-driven search and filter (status, payment method, date range). Server-paginated via URL params. Supabase Realtime on `orders` table (INSERT/UPDATE) triggers `router.refresh()`. Empty state with "Clear all filters" link when filters active. Status badges follow canonical order status mapping.
+
+#### OrderDetailView
+- **File:** `components/admin/OrderDetailView.tsx`
+- **Classes:**
+  - Back link: `flex items-center gap-1 text-[14px] text-text-secondary hover:text-text-primary transition-colors`
+  - Page title: `text-[16px] font-semibold text-text-primary`
+  - Date: `text-[14px] text-text-secondary mt-1`
+  - Section card: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Section heading: `text-[16px] font-semibold text-text-primary mb-4`
+  - Two-column layout: `grid grid-cols-1 lg:grid-cols-3 gap-6` with main `lg:col-span-2` and sidebar
+  - Payment record card: `bg-surface-secondary rounded-xl p-4 space-y-2`
+  - Customer info label: `text-[12px] font-medium uppercase tracking-wide text-text-secondary`
+  - Customer info value: `text-[14px] text-text-primary mt-0.5`
+  - Grand total: `text-[16px] font-semibold text-text-primary`
+  - Status update buttons: full-width using Button variants (secondary for progress, destructive for cancel/refund)
+  - Error banner: `bg-error-light border border-error rounded-md p-3 text-[14px] text-error`
+- **Props:** `order: AdminOrderDetail`
+- **Behavior:** Client component displaying full order detail. Left column: order items table (with product_snapshot name, sku_snapshot, qty, unit price, total) plus payment records. Right column: customer info, shipping address, status controls. Status transitions validated server-side. Only valid next statuses shown as buttons. Loading state during status update. Error display on failure.
+
+#### PaymentQueue
+- **File:** `components/admin/PaymentQueue.tsx`
+- **Classes:**
+  - Table card: same pattern as OrderList
+  - Order link: `text-[14px] font-mono text-text-primary hover:underline`
+  - Customer name: `text-[14px] font-medium text-text-primary`
+  - Transaction ref: `text-[12px] font-mono text-text-secondary block`
+  - Empty state card: `bg-surface border border-border rounded-2xl p-12 text-center` with check icon `w-12 h-12 rounded-full bg-surface-secondary`
+  - Empty state heading: `text-[16px] font-semibold text-text-primary mb-1`
+  - Pending count: `text-[14px] text-text-secondary`
+  - Error banner: `bg-error-light border border-error rounded-md p-3 text-[14px] text-error`
+- **Props:** `initialPayments: AdminPendingPayment[]`
+- **Behavior:** Client component with Supabase Realtime on `payments` table (INSERT/UPDATE) triggering `router.refresh()`. Approve/Reject buttons call Server Actions. Loading state per button during processing. Empty state shows checkmark icon, "No pending payments" heading, and "View all orders" link when queue is empty. Payment method badges use neutral variant (informational, not status).
 
 ### Admin — Coupons, Shipping, Customers, Audit
 

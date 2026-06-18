@@ -213,6 +213,262 @@ export async function getCategoryProducts(
     return { products: paginatedProducts, total, page, totalPages };
 }
 
+import type {
+    AdminCategoryListItem,
+    AdminCategoryListResult,
+    AdminCategoryFormData,
+    AdminParentCategoryOption,
+} from '@/types/admin-catalog';
+
+export async function getAdminCategoriesAll(): Promise<AdminCategoryListResult> {
+    const supabase = await createClient();
+
+    const { data: categories, error } = await supabase
+        .from('categories')
+        .select('id, parent_id, name, slug, path')
+        .is('deleted_at', null)
+        .order('path')
+        .order('name');
+
+    if (error) {
+        console.error('[repositories/category] getAdminCategoriesAll:', error);
+        return { categories: [], total: 0 };
+    }
+
+    const result: AdminCategoryListItem[] = (categories ?? []).map((c) => ({
+        id: c.id,
+        parentId: c.parent_id,
+        name: c.name,
+        slug: c.slug,
+        path: c.path,
+        childrenCount: 0,
+        productCount: 0,
+    }));
+
+    const categoryIds = result.map((c) => c.id);
+
+    if (categoryIds.length > 0) {
+        const [{ data: childCounts }, { data: prodCounts }] = await Promise.all([
+            supabase
+                .from('categories')
+                .select('parent_id')
+                .is('deleted_at', null)
+                .in('parent_id', categoryIds),
+            supabase
+                .from('products')
+                .select('category_id')
+                .is('deleted_at', null)
+                .in('category_id', categoryIds),
+        ]);
+
+        const childCountMap = new Map<string, number>();
+        (childCounts ?? []).forEach((c) => {
+            if (c.parent_id) {
+                childCountMap.set(c.parent_id, (childCountMap.get(c.parent_id) ?? 0) + 1);
+            }
+        });
+
+        const prodCountMap = new Map<string, number>();
+        (prodCounts ?? []).forEach((p) => {
+            prodCountMap.set(p.category_id, (prodCountMap.get(p.category_id) ?? 0) + 1);
+        });
+
+        for (const cat of result) {
+            cat.childrenCount = childCountMap.get(cat.id) ?? 0;
+            cat.productCount = prodCountMap.get(cat.id) ?? 0;
+        }
+    }
+
+    return { categories: result, total: result.length };
+}
+
+export async function getAdminCategoryById(
+    id: string,
+): Promise<AdminCategoryFormData | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('categories')
+        .select('id, parent_id, name, slug')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+
+    if (error || !data) return null;
+
+    return {
+        name: data.name,
+        slug: data.slug,
+        parentId: data.parent_id,
+    };
+}
+
+export async function createCategory(
+    data: AdminCategoryFormData,
+): Promise<string> {
+    const supabase = await createClient();
+
+    let computedPath: string | null = null;
+    if (data.parentId) {
+        const { data: parent } = await supabase
+            .from('categories')
+            .select('path, slug')
+            .eq('id', data.parentId)
+            .is('deleted_at', null)
+            .single();
+
+        if (parent) {
+            const parentPath = parent.path || parent.slug;
+            computedPath = `${parentPath}/${data.slug}`;
+        }
+    }
+
+    const { data: created, error } = await supabase
+        .from('categories')
+        .insert({
+            name: data.name,
+            slug: data.slug,
+            parent_id: data.parentId,
+            path: computedPath ?? data.slug,
+        })
+        .select('id')
+        .single();
+
+    if (error) throw error;
+    return created.id;
+}
+
+export async function updateCategory(
+    id: string,
+    data: Partial<AdminCategoryFormData>,
+): Promise<void> {
+    const supabase = await createClient();
+
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.parentId !== undefined) updateData.parent_id = data.parentId;
+
+    if (data.parentId !== undefined || data.slug !== undefined) {
+        let computedPath: string | null = null;
+        if (data.parentId !== undefined) {
+            if (data.parentId) {
+                const { data: parent } = await supabase
+                    .from('categories')
+                    .select('path, slug')
+                    .eq('id', data.parentId)
+                    .is('deleted_at', null)
+                    .single();
+
+                if (parent) {
+                    const parentPath = parent.path || parent.slug;
+                    computedPath = `${parentPath}/${data.slug ?? ''}`;
+                }
+            } else {
+                computedPath = data.slug ?? null;
+            }
+        } else if (data.slug) {
+            const { data: current } = await supabase
+                .from('categories')
+                .select('parent_id')
+                .eq('id', id)
+                .single();
+
+            if (current?.parent_id) {
+                const { data: currentParent } = await supabase
+                    .from('categories')
+                    .select('path, slug')
+                    .eq('id', current.parent_id)
+                    .single();
+
+                if (currentParent) {
+                    const parentPath = currentParent.path || currentParent.slug;
+                    computedPath = `${parentPath}/${data.slug}`;
+                } else {
+                    computedPath = data.slug;
+                }
+            } else {
+                computedPath = data.slug;
+            }
+        }
+        if (computedPath) updateData.path = computedPath;
+    }
+
+    if (data.parentId !== undefined && data.parentId) {
+        if (data.parentId === id) {
+            throw new Error('Cannot set category as its own parent');
+        }
+    }
+
+    if (Object.keys(updateData).length === 0) return;
+
+    const { error } = await supabase
+        .from('categories')
+        .update(updateData)
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+export async function softDeleteCategory(id: string): Promise<void> {
+    const supabase = await createClient();
+
+    const { count } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('category_id', id)
+        .is('deleted_at', null);
+
+    if (count && count > 0) {
+        throw new Error('Cannot delete category with active products');
+    }
+
+    const { count: childCount } = await supabase
+        .from('categories')
+        .select('id', { count: 'exact', head: true })
+        .eq('parent_id', id)
+        .is('deleted_at', null);
+
+    if (childCount && childCount > 0) {
+        throw new Error('Cannot delete category with subcategories');
+    }
+
+    const { error } = await supabase
+        .from('categories')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+export async function getCategoriesForParentSelect(
+    excludeId?: string,
+): Promise<AdminParentCategoryOption[]> {
+    const supabase = await createClient();
+
+    let query = supabase
+        .from('categories')
+        .select('id, name, path')
+        .is('deleted_at', null)
+        .order('path')
+        .order('name');
+
+    if (excludeId) {
+        query = query.neq('id', excludeId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) return [];
+
+    return (data ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        path: c.path,
+        depth: c.path ? c.path.split('/').length : 1,
+    }));
+}
+
 export async function getCategoryFilterOptions(): Promise<ShopFilterOptions> {
     const supabase = await createClient();
 

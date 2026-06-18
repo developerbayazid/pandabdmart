@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 type CreateOrderInput = {
     userId: string;
@@ -539,6 +540,118 @@ export async function cancelOrder(orderId: string, userId?: string) {
     return { id: orderId, status: 'cancelled' as const };
 }
 
+export async function getAdminOrders({
+    page = 1,
+    limit = 20,
+    search,
+    status,
+    paymentMethod,
+    dateFrom,
+    dateTo,
+}: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    paymentMethod?: string;
+    dateFrom?: string;
+    dateTo?: string;
+}): Promise<{ orders: Record<string, unknown>[]; total: number; page: number; totalPages: number }> {
+    const supabase = await createClient();
+
+    let query = supabase
+        .from('orders')
+        .select(
+            'id, user_id, customer_email, status, payment_method, subtotal, shipping_cost, discount_total, grand_total, created_at, user:users(full_name), order_items(count)',
+            { count: 'exact' },
+        )
+        .order('created_at', { ascending: false });
+
+    if (search) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search);
+        if (isUuid) {
+            query = query.or(
+                `id.eq.${search},user.full_name.ilike.%${search}%`,
+            );
+        } else {
+            query = query.ilike('user.full_name', `%${search}%`);
+        }
+    }
+
+    if (status) {
+        query = query.eq('status', status);
+    }
+
+    if (paymentMethod) {
+        query = query.eq('payment_method', paymentMethod);
+    }
+
+    if (dateFrom) {
+        query = query.gte('created_at', dateFrom);
+    }
+
+    if (dateTo) {
+        query = query.lte('created_at', dateTo);
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+        console.error('[repositories/order] getAdminOrders:', error);
+        return { orders: [], total: 0, page: 1, totalPages: 0 };
+    }
+
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const rawData = data as unknown as Record<string, unknown>[] | null;
+    return { orders: rawData ?? [], total, page, totalPages };
+}
+
+export async function getAdminOrderById(orderId: string): Promise<Record<string, unknown> | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('orders')
+        .select(
+            'id, user_id, customer_email, status, payment_method, subtotal, shipping_cost, discount_total, grand_total, created_at, updated_at, user:users(full_name), order_items(*), payments(*), shipping_addresses(*)',
+        )
+        .eq('id', orderId)
+        .single();
+
+    if (error || !data) {
+        return null;
+    }
+
+    return data as unknown as Record<string, unknown>;
+}
+
+export async function updateOrderStatusInDb(
+    orderId: string,
+    currentStatus: string,
+    newStatus: string,
+): Promise<{ id: string; status: string }> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('orders')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', orderId)
+        .eq('status', currentStatus)
+        .select('id, status')
+        .single();
+
+    if (error) {
+        throw new Error(`Failed to update order status: ${error.message}`);
+    }
+
+    return { id: data.id as string, status: data.status as string };
+}
+
 export async function findPaymentByGatewayRef(
     gatewayRef: string,
 ): Promise<{ id: string; status: string; order_id: string } | null> {
@@ -557,4 +670,168 @@ export async function findPaymentByGatewayRef(
         status: data.status,
         order_id: data.order_id,
     };
+}
+
+export async function adminEditCustomerInfo(
+    orderId: string,
+    data: { customerEmail?: string },
+): Promise<void> {
+    const supabase = await createClient();
+
+    const updates: Record<string, unknown> = {};
+    if (data.customerEmail !== undefined) updates.customer_email = data.customerEmail;
+
+    if (Object.keys(updates).length === 0) return;
+
+    const { error } = await supabase
+        .from('orders')
+        .update(updates)
+        .eq('id', orderId);
+
+    if (error) throw new Error(`Failed to update customer info: ${error.message}`);
+}
+
+export async function adminEditShippingAddress(
+    addressId: string,
+    data: {
+        name?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        district?: string;
+        postalCode?: string;
+    },
+): Promise<void> {
+    const supabase = await createClient();
+
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.phone !== undefined) updates.phone = data.phone;
+    if (data.address !== undefined) updates.address = data.address;
+    if (data.city !== undefined) updates.city = data.city;
+    if (data.district !== undefined) updates.district = data.district;
+    if (data.postalCode !== undefined) updates.postal_code = data.postalCode;
+
+    if (Object.keys(updates).length === 0) return;
+
+    const { error } = await supabase
+        .from('shipping_addresses')
+        .update(updates)
+        .eq('id', addressId);
+
+    if (error) throw new Error(`Failed to update shipping address: ${error.message}`);
+}
+
+export async function adminAddOrderItemRpc(
+    orderId: string,
+    variantId: string,
+    quantity: number,
+): Promise<{ success: boolean; order_id: string; error?: string }> {
+    const adminClient = createAdminClient();
+
+    const { data, error } = await adminClient.rpc('admin_add_order_item', {
+        p_order_id: orderId,
+        p_variant_id: variantId,
+        p_quantity: quantity,
+    });
+
+    if (error) {
+        return { success: false, order_id: orderId, error: error.message };
+    }
+
+    return {
+        success: data.success as boolean,
+        order_id: data.order_id as string,
+    };
+}
+
+export async function adminRemoveOrderItemRpc(
+    orderItemId: string,
+): Promise<{ success: boolean; order_id: string; error?: string }> {
+    const adminClient = createAdminClient();
+
+    const { data, error } = await adminClient.rpc('admin_remove_order_item', {
+        p_order_item_id: orderItemId,
+    });
+
+    if (error) {
+        return { success: false, order_id: '', error: error.message };
+    }
+
+    return {
+        success: data.success as boolean,
+        order_id: data.order_id as string,
+    };
+}
+
+export async function adminSearchVariants(
+    search: string,
+    limit = 20,
+): Promise<{ id: string; sku: string; price: number; stock: number; productName: string }[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('product_variants')
+        .select(
+            'id, sku, price, stock, product:products!inner(name)',
+        )
+        .ilike('sku', `%${search}%`)
+        .eq('is_active', true)
+        .order('sku')
+        .limit(limit);
+
+    if (error || !data) return [];
+
+    return (data as unknown as {
+        id: string;
+        sku: string;
+        price: number;
+        stock: number;
+        product: { name: string }[];
+    }[]).map((v) => ({
+        id: v.id,
+        sku: v.sku,
+        price: v.price,
+        stock: v.stock,
+        productName: v.product?.[0]?.name ?? 'Unknown',
+    }));
+}
+
+export async function resetPaymentToPending(
+    orderId: string,
+    orderItems: { variantId: string; quantity: number }[],
+): Promise<void> {
+    const supabase = await createClient();
+    const adminClient = createAdminClient();
+
+    // Restore stock and re-reserve for each item (reverse of approve_manual_payment)
+    for (const item of orderItems) {
+        const { data: variant } = await supabase
+            .from('product_variants')
+            .select('stock, reserved_stock')
+            .eq('id', item.variantId)
+            .maybeSingle();
+
+        if (variant) {
+            await adminClient
+                .from('product_variants')
+                .update({
+                    stock: (variant.stock ?? 0) + item.quantity,
+                    reserved_stock: (variant.reserved_stock ?? 0) + item.quantity,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', item.variantId);
+        }
+    }
+
+    // Reset payment record to pending so Verify/Fail buttons reappear
+    await adminClient
+        .from('payments')
+        .update({
+            status: 'pending',
+            verified_by: null,
+            verified_at: null,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('order_id', orderId);
 }

@@ -10,9 +10,14 @@ export const createClient = async () => {
             cookies: {
                 getAll: () => cookieStore.getAll(),
                 setAll: (cookiesToSet) => {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        cookieStore.set(name, value, options),
-                    );
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options),
+                        );
+                    } catch {
+                        // cookieStore.set() is not allowed in Server Components
+                        // in Next.js 16 — session refresh happens via Server Actions instead
+                    }
                 },
             },
         },
