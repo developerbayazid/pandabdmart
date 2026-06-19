@@ -274,16 +274,14 @@ export async function createOrderWithRpc(
             throw new Error(`Order coupon creation failed: ${ocError.message}`);
         }
 
-        const { data: currentCoupon } = await supabase
-            .from('coupons')
-            .select('used_count')
-            .eq('id', couponId)
-            .single();
+        // Atomic coupon usage increment — prevents concurrent bypass of usage_limit
+        const { error: usageError } = await supabase.rpc('increment_coupon_usage', {
+            p_coupon_id: couponId,
+        });
 
-        await supabase
-            .from('coupons')
-            .update({ used_count: (currentCoupon?.used_count ?? 0) + 1 })
-            .eq('id', couponId);
+        if (usageError) {
+            throw new Error(`Failed to increment coupon usage: ${usageError.message}`);
+        }
     }
 
     // Clear cart

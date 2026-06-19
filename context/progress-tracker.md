@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 5 — Admin Panel
-**Last completed:** 20 Order Management & MFS Verification
-**In progress:** —
+**Last completed:** 23 Audit Log Viewer
+**In progress:** 24 Email Notifications
 
 ---
 
@@ -48,9 +48,9 @@ Update this file after every completed feature. Any AI agent reading this should
 - [x] 18 Product & Variant Management
 - [x] 19 Category & Brand Management
 - [x] 20 Order Management & MFS Verification
-- [ ] 21 Coupons & Shipping Zones Management
-- [ ] 22 Customer & User Management
-- [ ] 23 Audit Log Viewer
+- [x] 21 Coupons & Shipping Zones Management — New files: `types/admin-coupon.ts`, `types/admin-shipping.ts`, `repositories/coupon.repository.ts`, `services/coupon.service.ts`, `services/shipping.service.ts`, `actions/coupon.actions.ts`, `actions/shipping.actions.ts`, `components/admin/CouponList.tsx`, `components/admin/ShippingZonesList.tsx`, `app/admin/coupons/page.tsx`, `app/admin/shipping/page.tsx`. Extended `repositories/shipping.repository.ts` with admin CRUD. Build: 0 TS errors, 0 new lint warnings. UI pattern matches BrandList exactly — inline create/edit forms, search/pagination for coupons (20/page, URL-driven), simple table for shipping zones (no pagination — typically <5 zones). Coupon delete sets `is_active = false`. Audit logging on all mutations. Sidebar items already existed — pages now render. Both admin-only per sidebar Management section.
+- [x] 22 Customer & User Management — New files: `types/admin-customer.ts`, `repositories/customer.repository.ts`, `services/customer.service.ts`, `actions/customer.actions.ts`, `components/admin/CustomerList.tsx`, `components/admin/CustomerDetailView.tsx`, `app/admin/customers/page.tsx`, `app/admin/customers/[id]/page.tsx`. Migration: `20260619100000_add_deactivated_at_users.sql` (adds `deactivated_at` timestamptz to `users`). List page filters to role='customer' only, with search (name/phone) and pagination (20/page, URL-driven). Detail page shows profile info, deactivate/reactivate toggle, promote-to-shop-manager action, and full paginated order history. Audit logging on all mutations. Admin-only per Management section. Build: 0 TS errors, 0 new lint warnings. UI pattern matches CouponList exactly — search + table + pagination. Sidebar Customers link already existed — page now renders.
+- [x] 23 Audit Log Viewer — New files: `types/admin-audit.ts`, `services/audit-viewer.service.ts`, `actions/audit.actions.ts`, `components/admin/AuditLogList.tsx`, `app/admin/audit-logs/page.tsx`. Extended `repositories/audit.repository.ts` with date range filters (`dateFrom`, `dateTo`) and actor name ILIKE search on `user.full_name`. Table shows timestamp, actor name, action (color-coded badge), entity type, entity ID, expandable meta JSON payload. Filter bar with actor name text search, action type dropdown (22 known actions), entity type dropdown (9 types), date range pickers. Pagination (20/page, URL-driven). Admin-only access per `requireRole('admin')`. Sidebar Audit Logs link already existed — page now renders. Build: 0 TS errors.
 
 ### Phase 6 — Notifications, SEO & Polish
 
@@ -91,4 +91,6 @@ Update this file after every completed feature. Any AI agent reading this should
 **Post-deploy Fix 2:** `PaymentRecordCard` view mode now always shows Gateway Ref, TxnID, and Payment # fields (with `-` for null) instead of hiding empty fields.
 **Post-deploy Fix 3:** Backend — when admin changes order status to `payment_pending`, payment record is reset to `pending` (clears `verified_by`/`verified_at`) and Verify/Fail buttons reappear. If coming from `paid`, stock is restored and re-reserved via `resetPaymentToPending` in `repositories/order.repository.ts`.
 **Post-deploy Fix 4:** Admin `/admin/payments` page now shows ALL payments (including COD) with tab filtering (All/Pending/Verified/Failed), status badges, and verifier info. Renamed `getAllMfsPayments` → `getAllPayments` (no MFS method filter). PaymentQueue component rewritten with tabs.
+**Post-deploy Fix 6:** Coupon `usage_limit` race condition fixed — created `increment_coupon_usage` RPC that atomically `UPDATE coupons SET used_count = used_count + 1` and raises if `used_count >= usage_limit`. Updated `repositories/order.repository.ts` to call the RPC instead of non-atomic read-then-write. Build: clean.
+
 **Post-deploy Fix 5:** Debugged empty payments page — `public.users` has no `email` column (lives in `auth.users`). Removed `email` from the `user:users` join select. Also changed `!verified_by` and `user:users` joins from INNER to LEFT JOIN so rows with null FKs aren't silently dropped.

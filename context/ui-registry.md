@@ -894,7 +894,70 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
 
 ### Admin — Coupons, Shipping, Customers, Audit
 
-<!-- CouponsTable, ShippingZonesTable, UsersTable, AuditLogTable -->
+#### CustomerList
+- **File:** `components/admin/CustomerList.tsx`
+- **Classes:**
+  - Search input: `w-full bg-surface border border-border rounded-md pl-10 pr-4 py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Table card: Same pattern as CouponList — `bg-surface border border-border rounded-2xl overflow-hidden shadow-[...]`
+  - Avatar circle: `w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center text-[13px] font-medium text-text-secondary shrink-0`
+  - Name cell: `font-medium text-text-primary`
+  - Empty state: Same pattern as CouponList empty state with Search icon
+  - Search-only empty state: `p-12 text-center` with `text-[14px] text-text-secondary` "No customers match your search"
+  - Action buttons: `p-1.5 text-text-muted hover:text-text-primary rounded hover:bg-surface-tertiary transition-colors` (view), `text-text-muted hover:text-error hover:bg-error-light` (deactivate), `text-text-muted hover:text-success hover:bg-success/10` (reactivate)
+  - Status badge: `Badge variant="success"` (active), `Badge variant="neutral"` (deactivated)
+- **Props:** `initialData: AdminCustomerListResult | null`, `currentSearch: string`
+- **Behavior:** URL-driven search (name/phone) and pagination via `useSearchParams()`/`useRouter()`. Filters to role='customer' only. Inline deactivate/reactivate toggle per row. View button links to `/admin/customers/[id]`. Uses `router.refresh()` after mutations. Empty state differs based on whether search is active.
+
+#### CustomerDetailView
+- **File:** `components/admin/CustomerDetailView.tsx`
+- **Classes:**
+  - Back link: `p-1.5 text-text-muted hover:text-text-primary rounded hover:bg-surface-secondary transition-colors` with `ArrowLeft` icon
+  - Page title: `text-[16px] font-semibold text-text-primary`
+  - Subtitle: `text-[14px] text-text-secondary mt-0.5`
+  - Section card: Same pattern as CouponList form card — `bg-surface border border-border rounded-2xl p-6 shadow-[...]`
+  - Section heading: `text-[15px] font-semibold text-text-primary mb-4`
+  - Info grid: `grid grid-cols-2 gap-4`
+  - Info label: `block text-[11px] font-medium uppercase tracking-wide text-text-muted mb-1`
+  - Info value: `text-[14px] text-text-primary`
+  - Actions card: Same shell as Section card, in sidebar column
+  - Action buttons: full-width using Button variants
+  - Error banner: `bg-error-light border border-error/20 rounded-md px-4 py-3 text-[14px] text-error`
+  - Two-column layout: `grid grid-cols-1 lg:grid-cols-3 gap-6` with main `lg:col-span-2` and sidebar
+  - Order link: `text-[14px] font-mono text-text-primary hover:underline`
+- **Props:** `customer: AdminCustomerDetail`, `initialOrders: AdminCustomerOrdersResult | null`
+- **Behavior:** Client component with two-column layout. Left (col-span-2): Profile Information card + Order History card with paginated table. Right: Actions card with Deactivate/Reactivate and Promote to Shop Manager buttons. Client-side pagination for order history calls `getCustomerOrdersAction` server action. Order rows link to `/admin/orders/[id]`.
+
+#### CouponList
+- **File:** `components/admin/CouponList.tsx`
+- **Classes:**
+  - Search input: `w-full bg-surface border border-border rounded-md pl-10 pr-4 py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Add button: `Button variant="primary" size="sm"` with `Plus` icon
+  - Form card: Same pattern as BrandList form card — `bg-surface border border-border rounded-2xl p-6 shadow-[...]`
+  - Form heading: `text-[16px] font-semibold text-text-primary`
+  - Form label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Form input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Form select: Same as input + no `appearance-none` (native select)
+  - Form grid: `grid grid-cols-1 md:grid-cols-2 gap-4`
+  - Error banner: `bg-error-light border border-error/20 rounded-md px-4 py-3 text-[14px] text-error`
+  - Table card: Same pattern as ProductList/BrandList — `bg-surface border border-border rounded-2xl overflow-hidden shadow-[...]`
+  - Code cell: `font-medium` (in TableCell)
+  - Badge variants: `info` (percentage), `success` (fixed), `warning` (free_shipping)
+  - Status badge: `Badge variant="success"` (active), `Badge variant="neutral"` (disabled)
+  - Empty state: Same pattern as BrandList empty state with Search icon
+  - Search-only empty state: `p-12 text-center` with `text-[14px] text-text-secondary` "No coupons match your search"
+- **Props:** `initialData: AdminCouponListResult | null`, `currentSearch: string`
+- **Behavior:** URL-driven search and pagination via `useSearchParams()`/`useRouter()`. Inline create/edit form with 6 fields (code auto-uppercased, type select, value, min order, usage limit, expiry date). Delete sets `is_active = false` (soft delete). Uses `router.refresh()` after mutations. Empty state differs based on whether search is active.
+
+#### ShippingZonesList
+- **File:** `components/admin/ShippingZonesList.tsx`
+- **Classes:**
+  - Add button: Same as CouponList `Button variant="primary" size="sm"`
+  - Form card: Same pattern as CouponList form card
+  - Table card: Same pattern as CouponList/BrandList
+  - Empty state: Same icon circle pattern as BrandList/CouponList with Truck SVG icon
+  - Cost cell: `text-text-secondary` with `৳` prefix
+- **Props:** `initialData: AdminShippingZoneListItem[] | null`
+- **Behavior:** Inline create/edit form with 3 fields (name, cost, description). No pagination (small dataset). Hard delete via Server Action. `router.refresh()` after mutations. Revalidates `/checkout` path on changes.
 
 ### Shared UI Primitives
 
@@ -1202,6 +1265,20 @@ Likely early candidates for shared patterns in this project:
 #### Audit Logging
 - **File:** `repositories/audit.repository.ts`, `services/audit.service.ts`
 - **Behavior:** `insertAuditLog(actorId, action, entityType, entityId, meta)` inserts into `audit_logs` table. Used by all admin CRUD operations in `services/product.service.ts`. `getAuditLogs` for audit log viewer (Feature 23). Non-blocking — failures are logged but never throw.
+
+#### AuditLogList
+- **File:** `components/admin/AuditLogList.tsx`
+- **Classes:**
+  - Filter card: `bg-surface border border-border rounded-2xl p-4 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]`
+  - Filter label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Filter select/input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-text-primary`
+  - Apply button: `px-4 py-2 bg-surface-inverse text-text-inverse text-sm font-medium rounded-md hover:opacity-90 transition-opacity disabled:opacity-50`
+  - Empty state icon wrapper: `w-16 h-16 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-4`
+  - Empty state text: `text-[14px] text-text-secondary`
+  - Meta payload header: `text-[13px] font-medium text-text-primary mb-2`
+  - Meta payload pre: `text-[13px] text-text-secondary font-mono whitespace-pre-wrap overflow-x-auto max-h-[300px] overflow-y-auto`
+- **Props:** `initialData: AdminAuditResult | null`, `currentAction: string`, `currentEntityType: string`, `currentDateFrom: string`, `currentDateTo: string`
+- **Behavior:** Client component with filter bar (action dropdown, entity type dropdown, date from/to pickers), table with expandable meta JSON rows, URL-driven pagination. Action badges color-coded by type (create=success, delete=error, update=warning, verify=success, fail=error, deactivate=error, reactivate=success).
 
 #### Image Upload Utility
 - **File:** `lib/upload.ts`
