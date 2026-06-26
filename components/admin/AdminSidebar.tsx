@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
     Package,
+    Warehouse,
     FolderTree,
     Building2,
     ShoppingCart,
@@ -49,6 +50,13 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                         active={pathname.startsWith('/admin/products')}
                     >
                         Products
+                    </NavItem>
+                    <NavItem
+                        href="/admin/inventory"
+                        icon={Warehouse}
+                        active={pathname.startsWith('/admin/inventory')}
+                    >
+                        Inventory
                     </NavItem>
                     <NavItem
                         href="/admin/categories"

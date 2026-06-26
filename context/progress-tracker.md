@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 6 — Notifications, SEO & Polish
-**Last completed:** 24 Store Settings
-**In progress:** 25 Email Notifications
+**Last completed:** 25 Inventory Management System
+**In progress:** 26 Email Notifications
 
 ---
 
@@ -55,7 +55,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ### Phase 6 — Notifications, SEO & Polish
 
 - [x] 24 Store Settings — Frontend Customization — Expanded with 3 migrations: base `store_settings` table (14 cols), frontend text customization (35 cols + public SELECT), product curation + collection grid (15 cols). SettingsForm: 8-tab layout (General, Header, Footer, Hero, Homepage, Products, Collection, SEO & Inventory) with image uploads (logo, favicon, 3 hero slides, festive banner, 5 collection images) via Supabase Storage + Product Curation tab with product search autocomplete (searches products by name, fills UUID). Frontend fully dynamic: Navbar/Footer read DB settings, layout uses `generateMetadata()`, homepage curates products per section via `getProductsByIds`, CollectionGrid driven by DB. Added `searchProductsAction`, `uploadSettingsImage`, `getProductsByIds`. Build: 0 TS errors.
-- [ ] 25 Email Notifications
+- [x] 25 Inventory Management System — New tables `inventory_items` + `inventory_variants` with admin/manager RLS (no public access). Tracks supplier, purchase price, selling price, reorder point, warehouse location, notes. Supports simple and variable product types. Admin pages at `/admin/inventory` (list with search, category/brand/supplier/status filters, 20/page pagination, ordered by most recently updated), `/admin/inventory/new` (create form with variant builder), `/admin/inventory/[id]/edit` (edit form; read-only for transferred items with link to storefront product). **Transfer:** atomic RPC `transfer_inventory_to_product` locks row with FOR UPDATE, validates category + variants, creates storefront product in `draft` status with all variants in single transaction. **Revert:** atomic RPC `revert_inventory_transfer` soft-deletes linked product, restores inventory item to `draft`. Audit logging on all mutations. Sidebar: "Inventory" nav item with `Warehouse` icon. Seed: 35 inventory items across 20 categories, 6 suppliers (guard skips if categories/brands empty). DB fixes: `updated_at` triggers, `deleted_at` cascade on variants, trigram search index, server-side `DISTINCT` supplier RPC. New files: `types/admin-inventory.ts`, `repositories/inventory.repository.ts`, `services/inventory.service.ts`, `actions/inventory.actions.ts`, `components/admin/InventoryList.tsx`, `components/admin/InventoryForm.tsx`, pages at `app/admin/inventory/`. Migrations: `20260626030000_create_inventory_tables.sql`, `20260626031000_seed_inventory_items.sql`, `20260626032000_inventory_fixes.sql`. Build: 0 TS errors, 0 lint warnings.
+- [ ] 26 Email Notifications
 - [ ] 26 SEO & Performance Pass
 - [ ] 27 Reviews Moderation (Optional)
 
