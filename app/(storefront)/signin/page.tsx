@@ -22,9 +22,20 @@ function SignInForm() {
 
     useEffect(() => {
         const supabase = createClient();
-        supabase.auth.getSession().then(({ data }) => {
+        supabase.auth.getSession().then(async ({ data }) => {
             if (data.session) {
-                router.replace(redirectTo);
+                const { data: userRow } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', data.session.user.id)
+                    .single();
+
+                const resolvedRedirect =
+                    userRow && ['admin', 'shop_manager'].includes(userRow.role)
+                        ? '/admin/dashboard'
+                        : redirectTo;
+
+                router.replace(resolvedRedirect);
             }
         });
     }, [router, redirectTo]);
@@ -51,19 +62,31 @@ function SignInForm() {
         setLoading(true);
 
         const supabase = createClient();
-        const { error: authError } = await supabase.auth.signInWithPassword({
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
-        if (authError) {
-            setError(authError.message);
+        if (authError || !data.user) {
+            setError(authError?.message ?? 'Sign in failed');
             setLoading(false);
             return;
         }
 
         await mergeGuestCartOnLogin();
-        router.push(redirectTo);
+
+        const { data: userRow } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+        const resolvedRedirect =
+            userRow && ['admin', 'shop_manager'].includes(userRow.role)
+                ? '/admin/dashboard'
+                : redirectTo;
+
+        router.push(resolvedRedirect);
         router.refresh();
     };
 

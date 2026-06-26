@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { resolveRedirect } from '@/lib/auth/resolve-redirect';
 
 export async function GET(request: NextRequest) {
     const { searchParams, origin } = request.nextUrl;
@@ -11,28 +12,30 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     if (tokenHash && type) {
-        const { error } = await supabase.auth.verifyOtp({
+        const { data, error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: type as 'email' | 'recovery',
         });
 
-        if (error) {
+        if (error || !data.user) {
             console.error('[api/auth/callback]', error);
             return NextResponse.redirect(`${origin}/signin?error=Unable+to+sign+in`);
         }
 
-        return NextResponse.redirect(`${origin}${next}`);
+        const redirectTo = await resolveRedirect(data.user.id, next);
+        return NextResponse.redirect(`${origin}${redirectTo}`);
     }
 
     if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (error) {
+        if (error || !data.user) {
             console.error('[api/auth/callback]', error);
             return NextResponse.redirect(`${origin}/signin?error=Unable+to+sign+in`);
         }
 
-        return NextResponse.redirect(`${origin}${next}`);
+        const redirectTo = await resolveRedirect(data.user.id, next);
+        return NextResponse.redirect(`${origin}${redirectTo}`);
     }
 
     return NextResponse.redirect(`${origin}/signin`);

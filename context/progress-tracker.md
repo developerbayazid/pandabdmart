@@ -96,3 +96,7 @@ Update this file after every completed feature. Any AI agent reading this should
 **Post-deploy Fix 6:** Coupon `usage_limit` race condition fixed — created `increment_coupon_usage` RPC that atomically `UPDATE coupons SET used_count = used_count + 1` and raises if `used_count >= usage_limit`. Updated `repositories/order.repository.ts` to call the RPC instead of non-atomic read-then-write. Build: clean.
 
 **Post-deploy Fix 5:** Debugged empty payments page — `public.users` has no `email` column (lives in `auth.users`). Removed `email` from the `user:users` join select. Also changed `!verified_by` and `user:users` joins from INNER to LEFT JOIN so rows with null FKs aren't silently dropped.
+
+**Post-deploy Fix 7:** Admin sidebar internal scroll removed — nav no longer has `overflow-y-auto`; all items display without a scrollbar.
+
+**Post-deploy Fix 8:** Auth redirect role-aware — after login (password / OAuth / magic link), admin and shop_manager users now redirect to `/admin/dashboard` instead of `/account`. Customers still go to `/account` (or `?redirect=` param). Fixed in `signin/page.tsx`, `auth/callback/page.tsx`, and `api/auth/callback/route.ts`. Helper at `lib/auth/resolve-redirect.ts`.

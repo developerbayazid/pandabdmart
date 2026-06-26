@@ -35,7 +35,7 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                 </span>
             </Link>
 
-            <nav className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+            <nav className="flex-1 px-4 py-3">
                 <NavSection label="Menu">
                     <NavItem
                         href="/admin/dashboard"
