@@ -8,9 +8,11 @@ const ITEMS_PER_PAGE = 8;
 
 type RecentProductsProps = {
     products: ShopProduct[];
+    title?: string;
+    subtitle?: string;
 };
 
-export function RecentProducts({ products }: RecentProductsProps) {
+export function RecentProducts({ products, title, subtitle }: RecentProductsProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE));
 
@@ -27,11 +29,13 @@ export function RecentProducts({ products }: RecentProductsProps) {
             <div className="max-w-[1440px] mx-auto px-8 lg:px-16">
                 <div className="text-center mb-8">
                     <h2 className="font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary mb-2">
-                        Recent Products
+                        {title ?? 'Recent Products'}
                     </h2>
-                    <p className="text-text-secondary text-sm">
-                        &ldquo;Explore Our Latest Arrivals — Fresh Styles Just In!&rdquo;
-                    </p>
+                    {subtitle && (
+                        <p className="text-text-secondary text-sm">
+                            &ldquo;{subtitle}&rdquo;
+                        </p>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">

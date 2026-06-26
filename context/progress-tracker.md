@@ -6,9 +6,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Current Status
 
-**Phase:** Phase 5 — Admin Panel
-**Last completed:** 23 Audit Log Viewer
-**In progress:** 24 Email Notifications
+**Phase:** Phase 6 — Notifications, SEO & Polish
+**Last completed:** 24 Store Settings
+**In progress:** 25 Email Notifications
 
 ---
 
@@ -54,9 +54,10 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ### Phase 6 — Notifications, SEO & Polish
 
-- [ ] 24 Email Notifications
-- [ ] 25 SEO & Performance Pass
-- [ ] 26 Reviews Moderation (Optional)
+- [x] 24 Store Settings — Frontend Customization — Expanded with 3 migrations: base `store_settings` table (14 cols), frontend text customization (35 cols + public SELECT), product curation + collection grid (15 cols). SettingsForm: 8-tab layout (General, Header, Footer, Hero, Homepage, Products, Collection, SEO & Inventory) with image uploads (logo, favicon, 3 hero slides, festive banner, 5 collection images) via Supabase Storage + Product Curation tab with product search autocomplete (searches products by name, fills UUID). Frontend fully dynamic: Navbar/Footer read DB settings, layout uses `generateMetadata()`, homepage curates products per section via `getProductsByIds`, CollectionGrid driven by DB. Added `searchProductsAction`, `uploadSettingsImage`, `getProductsByIds`. Build: 0 TS errors.
+- [ ] 25 Email Notifications
+- [ ] 26 SEO & Performance Pass
+- [ ] 27 Reviews Moderation (Optional)
 
 ---
 

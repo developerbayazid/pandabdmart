@@ -1,20 +1,20 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { getPublicSettings } from '@/repositories/settings.repository';
 
-const footerLinks = {
-    pages: [
-        { label: 'Home', href: '/' },
-        { label: 'Shop', href: '/shop' },
-        { label: 'Blog', href: '/blog' },
-        { label: 'Contact', href: '/contact' },
-    ],
-    services: [
-        { label: 'Panjabi', href: '/shop' },
-        { label: 'Trouser', href: '/shop' },
-        { label: 'Perfume', href: '/shop' },
-        { label: 'Footwear', href: '/shop' },
-    ],
-};
+const footerPagesLinks = [
+    { label: 'Home', href: '/' },
+    { label: 'Shop', href: '/shop' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Contact', href: '/contact' },
+];
+
+const footerServicesLinks = [
+    { label: 'Panjabi', href: '/shop' },
+    { label: 'Trouser', href: '/shop' },
+    { label: 'Perfume', href: '/shop' },
+    { label: 'Footwear', href: '/shop' },
+];
 
 function FacebookIcon({ className }: { className?: string }) {
     return (
@@ -61,52 +61,56 @@ function LinkedinIcon({ className }: { className?: string }) {
     );
 }
 
-export function Footer() {
+export async function Footer() {
+    const settings = await getPublicSettings();
+
+    const socialLinks: { href: string; Icon: React.ComponentType<{ className?: string }>; label: string }[] = [];
+    if (settings?.facebookUrl) socialLinks.push({ href: settings.facebookUrl, Icon: FacebookIcon, label: 'Facebook' });
+    if (settings?.footerTwitterUrl) socialLinks.push({ href: settings.footerTwitterUrl, Icon: TwitterIcon, label: 'Twitter' });
+    if (settings?.instagramUrl) socialLinks.push({ href: settings.instagramUrl, Icon: InstagramIcon, label: 'Instagram' });
+    if (settings?.youtubeUrl) socialLinks.push({ href: settings.youtubeUrl, Icon: YoutubeIcon, label: 'YouTube' });
+    if (settings?.footerLinkedinUrl) socialLinks.push({ href: settings.footerLinkedinUrl, Icon: LinkedinIcon, label: 'LinkedIn' });
+
     return (
         <footer className="bg-text-primary text-white">
             <div className="max-w-[1440px] mx-auto px-8 lg:px-16 py-12 lg:py-16">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-                    {/* Brand */}
                     <div className="sm:col-span-2 lg:col-span-1">
-                        <Image
-                            src="/images/Ethniq.png"
-                            alt="ETHNIQ"
-                            width={100}
-                            height={28}
-                            className="h-7 w-auto mb-4 invert"
-                        />
-                        <p className="text-[13px] text-white/70 leading-relaxed mb-6 max-w-xs">
-                            Ethniq — Where tradition meets style. Discover premium Panjabis & ethnic wear crafted for elegance and comfort!
-                        </p>
-                        <div className="flex items-center gap-3">
-                            <Link href="#" className="text-white/70 hover:text-white transition-colors">
-                                <FacebookIcon className="w-4 h-4" />
-                            </Link>
-                            <Link href="#" className="text-white/70 hover:text-white transition-colors">
-                                <TwitterIcon className="w-4 h-4" />
-                            </Link>
-                            <Link href="#" className="text-white/70 hover:text-white transition-colors">
-                                <InstagramIcon className="w-4 h-4" />
-                            </Link>
-                            <Link href="#" className="text-white/70 hover:text-white transition-colors">
-                                <YoutubeIcon className="w-4 h-4" />
-                            </Link>
-                            <Link href="#" className="text-white/70 hover:text-white transition-colors">
-                                <LinkedinIcon className="w-4 h-4" />
-                            </Link>
-                        </div>
+                        {settings?.logoUrl ? (
+                            <Image
+                                src={settings.logoUrl}
+                                alt={settings.storeName ?? 'Store'}
+                                width={100}
+                                height={28}
+                                className="h-7 w-auto mb-4 invert"
+                            />
+                        ) : (
+                            <p className="text-[16px] font-semibold text-white mb-4">
+                                {settings?.storeName ?? 'Store'}
+                            </p>
+                        )}
+                        {settings?.footerTagline && (
+                            <p className="text-[13px] text-white/70 leading-relaxed mb-6 max-w-xs">
+                                {settings.footerTagline}
+                            </p>
+                        )}
+                        {socialLinks.length > 0 && (
+                            <div className="flex items-center gap-3">
+                                {socialLinks.map((link) => (
+                                    <Link key={link.label} href={link.href} className="text-white/70 hover:text-white transition-colors" aria-label={link.label}>
+                                        <link.Icon className="w-4 h-4" />
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Pages */}
                     <div>
                         <h4 className="text-[14px] font-semibold text-white mb-4">Pages</h4>
                         <ul className="space-y-2.5">
-                            {footerLinks.pages.map((link) => (
+                            {footerPagesLinks.map((link) => (
                                 <li key={link.href}>
-                                    <Link
-                                        href={link.href}
-                                        className="text-[13px] text-white/70 hover:text-white transition-colors"
-                                    >
+                                    <Link href={link.href} className="text-[13px] text-white/70 hover:text-white transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -114,16 +118,12 @@ export function Footer() {
                         </ul>
                     </div>
 
-                    {/* Services */}
                     <div>
                         <h4 className="text-[14px] font-semibold text-white mb-4">Services</h4>
                         <ul className="space-y-2.5">
-                            {footerLinks.services.map((link) => (
+                            {footerServicesLinks.map((link) => (
                                 <li key={link.label}>
-                                    <Link
-                                        href={link.href}
-                                        className="text-[13px] text-white/70 hover:text-white transition-colors"
-                                    >
+                                    <Link href={link.href} className="text-[13px] text-white/70 hover:text-white transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -131,31 +131,33 @@ export function Footer() {
                         </ul>
                     </div>
 
-                    {/* Contacts */}
                     <div>
                         <h4 className="text-[14px] font-semibold text-white mb-4">Contacts</h4>
                         <ul className="space-y-2.5">
-                            <li className="text-[13px] text-white/70 leading-relaxed">
-                                55 East Birchwood Ave. Brooklyn,
-                                <br />
-                                New York 11201
-                            </li>
-                            <li className="text-[13px] text-white/70">
-                                contact@ethniq.com
-                            </li>
-                            <li className="text-[13px] text-white/70">
-                                (123) 456 - 7890
-                            </li>
+                            {settings?.storeAddress && (
+                                <li className="text-[13px] text-white/70 leading-relaxed">
+                                    {settings.storeAddress}
+                                </li>
+                            )}
+                            {settings?.storeEmail && (
+                                <li className="text-[13px] text-white/70">
+                                    {settings.storeEmail}
+                                </li>
+                            )}
+                            {settings?.storePhone && (
+                                <li className="text-[13px] text-white/70">
+                                    {settings.storePhone}
+                                </li>
+                            )}
                         </ul>
                     </div>
                 </div>
             </div>
 
-            {/* Copyright */}
             <div className="border-t border-white/10">
                 <div className="max-w-[1440px] mx-auto px-8 lg:px-16 py-4">
                     <p className="text-[11px] text-white/50 text-center">
-                        Copyright © 2025. All Rights Reserved Ethniq
+                        {settings?.footerCopyright ? `${settings.footerCopyright} ${settings.storeName ?? ''}` : 'Copyright © 2025. All Rights Reserved'}
                     </p>
                 </div>
             </div>

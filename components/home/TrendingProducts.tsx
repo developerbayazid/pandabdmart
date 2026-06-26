@@ -10,9 +10,11 @@ const ITEMS_PER_PAGE = 12;
 type TrendingProductsProps = {
     products: ShopProduct[];
     categories: { slug: string; name: string }[];
+    title?: string;
+    subtitle?: string;
 };
 
-export function TrendingProducts({ products, categories }: TrendingProductsProps) {
+export function TrendingProducts({ products, categories, title, subtitle }: TrendingProductsProps) {
     const [activeSlug, setActiveSlug] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [animationKey, setAnimationKey] = useState(0);
@@ -45,11 +47,13 @@ export function TrendingProducts({ products, categories }: TrendingProductsProps
             <div className="max-w-[1440px] mx-auto px-8 lg:px-16">
                 <div className="text-center mb-8">
                     <h2 className="font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary mb-2">
-                        Trending Products
+                        {title ?? 'Trending Products'}
                     </h2>
-                    <p className="text-text-secondary text-sm">
-                        &ldquo;Discover the Most Wanted Styles — Shop Our Bestselling Picks Now!&rdquo;
-                    </p>
+                    {subtitle && (
+                        <p className="text-text-secondary text-sm">
+                            &ldquo;{subtitle}&rdquo;
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex justify-center gap-6 mb-8">

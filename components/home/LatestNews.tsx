@@ -22,17 +22,24 @@ const newsItems = [
     },
 ];
 
-export function LatestNews() {
+type LatestNewsProps = {
+    title?: string;
+    subtitle?: string;
+};
+
+export function LatestNews({ title, subtitle }: LatestNewsProps) {
     return (
         <section className="bg-background py-12 lg:py-16">
             <div className="max-w-[1440px] mx-auto px-8 lg:px-16">
                 <div className="text-center mb-8">
                     <h2 className="font-[family-name:var(--font-serif)] text-[28px] lg:text-[32px] font-normal text-text-primary mb-2">
-                        Latest News
+                        {title ?? 'Latest News'}
                     </h2>
-                    <p className="text-text-secondary text-sm">
-                        &ldquo;Style Insights: Fashion Tips & Trends&rdquo;
-                    </p>
+                    {subtitle && (
+                        <p className="text-text-secondary text-sm">
+                            &ldquo;{subtitle}&rdquo;
+                        </p>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">

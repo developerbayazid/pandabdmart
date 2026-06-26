@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { getPublicSettings } from "@/repositories/settings.repository";
 
 const generalSans = localFont({
     src: [
@@ -29,10 +30,15 @@ const generalSans = localFont({
     variable: "--font-sans",
 });
 
-export const metadata: Metadata = {
-    title: "PandaBD Mart",
-    description: "Your trusted online store in Bangladesh",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const settings = await getPublicSettings();
+
+    return {
+        title: settings?.metaTitle ?? "PandaBD Mart",
+        description: settings?.metaDescription ?? "Your trusted online store in Bangladesh",
+        icons: settings?.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+    };
+}
 
 export default function RootLayout({
     children,

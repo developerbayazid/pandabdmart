@@ -1284,6 +1284,23 @@ Likely early candidates for shared patterns in this project:
 - **File:** `lib/upload.ts`
 - **Behavior:** Browser-client upload to `product-images` Supabase Storage bucket. Path: `products/{productId}/{filename}`. Returns public URL. Throws on failure.
 
+#### SettingsForm
+- **File:** `components/admin/SettingsForm.tsx`
+- **Classes:**
+  - Section card: `bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)] space-y-5`
+  - Section header: `flex items-center gap-2.5 pb-3 border-b border-border` with `w-4 h-4 text-text-secondary` icon + `text-[16px] font-semibold text-text-primary` title
+  - Form grid: `grid grid-cols-1 md:grid-cols-2 gap-4`
+  - Form label: `block text-xs font-medium uppercase tracking-wide text-text-secondary mb-1.5`
+  - Form input: `w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-text-primary focus:border-text-primary`
+  - Form textarea: Same as input + `rows={3}`
+  - Help text: `text-[12px] text-text-muted mt-1`
+  - Error banner: `bg-error-light border border-error/20 rounded-md px-4 py-3 text-[14px] text-error`
+  - Success banner: `bg-success-light border border-success/20 rounded-md px-4 py-3 text-[14px] text-success-foreground`
+  - Save button: `Button variant="primary"` with "Saving..." loading state
+  - Empty state: `bg-surface border border-border rounded-2xl p-12 text-center` with icon circle `w-16 h-16 rounded-full bg-surface-secondary` + Building2 icon + descriptive text
+- **Props:** `initialData: AdminSettingsData | null`
+- **Behavior:** Client component with 5 card sections (General, SEO, Social Media, Inventory, Branding). Controlled form state initialized from `initialData`. Single "Save Changes" button submits all fields to `updateStoreSettingsAction`. Success banner auto-shows on save, error banner for validation/server failures. Handles null `initialData` with empty state message about running migration.
+
 ---
 
 

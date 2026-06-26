@@ -178,6 +178,31 @@ function mapRowToProduct(row: Record<string, unknown>): ShopProduct {
     };
 }
 
+export async function getProductsByIds(ids: string[]): Promise<ShopProduct[]> {
+    if (ids.length === 0) return [];
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('products')
+        .select(
+            `id, name, slug, type, created_at,
+            category:categories!inner(id, name, slug),
+            brand:brands!inner(id, name, slug),
+            variants:product_variants(id, price, compare_price, stock, reserved_stock, sold_count, is_active, variant_images(url, is_primary))`,
+        )
+        .in('id', ids)
+        .eq('status', 'active')
+        .is('deleted_at', null);
+
+    if (error) {
+        console.error('[repositories/product] getProductsByIds:', error);
+        return [];
+    }
+
+    const productMap = new Map((data ?? []).map((p) => [p.id, mapRowToProduct(p)]));
+    return ids.map((id) => productMap.get(id)).filter(Boolean) as ShopProduct[];
+}
+
 export async function getHomepageProducts(): Promise<ShopProduct[]> {
     const supabase = await createClient();
 
