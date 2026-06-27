@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayStart } from '@/lib/utils';
 import { StatCard } from './StatCard';
+import { ProfitOverview } from './ProfitOverview';
 import { SalesChart } from './SalesChart';
 import { RecentOrdersTable } from './RecentOrdersTable';
 import { LowStockAlert } from './LowStockAlert';
 import { TopProducts } from './TopProducts';
+import { TopCustomers } from './TopCustomers';
 import type { DashboardData } from '@/services/admin.service';
 
 type AdminDashboardProps = {
@@ -114,7 +116,10 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                 />
             </div>
 
-            {/* Row 2: Chart + Side panel */}
+            {/* Row 2: Profit Analytics */}
+            <ProfitOverview stats={data.profitStats} />
+
+            {/* Row 3: Chart + Side panel */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
                     <SalesChart data={data.salesData} />
@@ -122,11 +127,14 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                 <LowStockAlert items={data.lowStockAlerts} />
             </div>
 
-            {/* Row 3: Recent Orders + Top Products */}
+            {/* Row 4: Recent Orders + Top Products */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <RecentOrdersTable orders={data.recentOrders} />
                 <TopProducts products={data.topProducts} />
             </div>
+
+            {/* Row 5: Top Customers */}
+            <TopCustomers customers={data.topCustomers} />
         </div>
     );
 }

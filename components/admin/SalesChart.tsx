@@ -9,6 +9,7 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
+    Legend,
 } from 'recharts';
 import { Calendar } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -23,21 +24,22 @@ type Period = 'Monthly' | 'Quarterly' | 'Annually';
 export function SalesChart({ data }: SalesChartProps) {
     const [period, setPeriod] = useState<Period>('Monthly');
 
-    // Compute date range label
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 30);
     const rangeLabel = `${formatDate(start.toISOString())} to ${formatDate(end.toISOString())}`;
+
+    const hasProfitData = data.some((d) => d.cost > 0 || d.profit > 0);
 
     return (
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.06),0px_1px_2px_-1px_rgba(0,0,0,0.06)]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                     <h3 className="text-[16px] font-semibold text-text-primary leading-6">
-                        Statistics
+                        Revenue & Profit
                     </h3>
                     <p className="text-[12px] text-text-secondary mt-0.5">
-                        Target you&apos;ve set for each month
+                        Last 30 days overview
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -66,9 +68,13 @@ export function SalesChart({ data }: SalesChartProps) {
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
-                            <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#0a0a0a" stopOpacity={0.06} />
                                 <stop offset="95%" stopColor="#0a0a0a" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
@@ -98,11 +104,20 @@ export function SalesChart({ data }: SalesChartProps) {
                                         <div className="text-[12px] text-text-secondary mb-1">
                                             {formatDate(String(label ?? ''))}
                                         </div>
-                                        <div className="text-[14px] font-medium text-text-primary">
-                                            {formatCurrency(payload[0].value as number)}
-                                        </div>
-                                        <div className="text-[12px] text-text-secondary">
-                                            {payload[0].payload.orders} orders
+                                        {payload.map((entry, i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                                <div
+                                                    className="w-2 h-2 rounded-full"
+                                                    style={{ backgroundColor: entry.color }}
+                                                />
+                                                <span className="text-[13px] text-text-secondary capitalize">{entry.name}: </span>
+                                                <span className="text-[13px] font-medium text-text-primary">
+                                                    {formatCurrency(entry.value as number)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        <div className="text-[12px] text-text-secondary mt-1">
+                                            {payload[0]?.payload?.orders ?? 0} orders
                                         </div>
                                     </div>
                                 );
@@ -111,9 +126,24 @@ export function SalesChart({ data }: SalesChartProps) {
                         <Area
                             type="monotone"
                             dataKey="revenue"
+                            name="Revenue"
                             stroke="#0a0a0a"
-                            strokeWidth={3}
-                            fill="url(#salesGradient)"
+                            strokeWidth={2}
+                            fill="url(#revenueGradient)"
+                        />
+                        {hasProfitData && (
+                            <Area
+                                type="monotone"
+                                dataKey="profit"
+                                name="Profit"
+                                stroke="#16a34a"
+                                strokeWidth={2}
+                                fill="url(#profitGradient)"
+                            />
+                        )}
+                        <Legend
+                            wrapperStyle={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}
+                            iconType="line"
                         />
                     </AreaChart>
                 </ResponsiveContainer>

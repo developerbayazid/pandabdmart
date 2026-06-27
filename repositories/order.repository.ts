@@ -75,7 +75,7 @@ export async function createOrderWithRpc(
 
     const { data: variants, error: variantError } = await supabase
         .from('product_variants')
-        .select('id, price, stock, reserved_stock, sku, is_active')
+        .select('id, price, purchase_price, stock, reserved_stock, sku, is_active')
         .in('id', variantIds);
 
     if (variantError || !variants) {
@@ -200,6 +200,7 @@ export async function createOrderWithRpc(
             variant_id: item.variantId,
             quantity: item.quantity,
             unit_price: Number(variant!.price),
+            purchase_price: variant?.purchase_price != null ? Number(variant.purchase_price) : null,
             discount_applied: 0,
             product_snapshot: product ?? null,
             variant_snapshot: variant ?? null,

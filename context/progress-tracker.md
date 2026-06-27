@@ -7,7 +7,7 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 6 — Notifications, SEO & Polish
-**Last completed:** 25 Inventory Management System
+**Last completed:** Dashboard Profit Analytics (migration deployed, profit/loss functional, payment status sync)
 **In progress:** 26 Email Notifications
 
 ---
@@ -100,3 +100,27 @@ Update this file after every completed feature. Any AI agent reading this should
 **Post-deploy Fix 7:** Admin sidebar internal scroll removed — nav no longer has `overflow-y-auto`; all items display without a scrollbar.
 
 **Post-deploy Fix 8:** Auth redirect role-aware — after login (password / OAuth / magic link), admin and shop_manager users now redirect to `/admin/dashboard` instead of `/account`. Customers still go to `/account` (or `?redirect=` param). Fixed in `signin/page.tsx`, `auth/callback/page.tsx`, and `api/auth/callback/route.ts`. Helper at `lib/auth/resolve-redirect.ts`.
+
+**Dashboard Profit Analytics — complete (migration deployed 2026-06-27):**
+- Migration `20260627000000_add_purchase_price_profit_tracking.sql` adds nullable `purchase_price` to `product_variants` (populated during inventory transfer) and `order_items` (snapshot cost at sale). No DEFAULT on variants — admin products stay NULL. `create_order` RPC passes null through, `transfer_inventory_to_product` RPC carries purchase_price.
+- New queries: `getProfitStats()` (12-month, .not('purchase_price','is',null) filter for inventory-sourced only), `getTopCustomers(8)` (paid/delivered/completed only), enhanced `getSalesData()` (cost via joined order_items), enhanced `getTopProducts()` (90-day, cost per product).
+- New components: `ProfitOverview` (revenue/cost/profit/margin cards), `TopCustomers` (ranked table).
+- Updated `SalesChart` — dual revenue/profit area lines (profit line hidden when cost=0).
+- Updated `TopProducts` — profit column, links to /admin/products.
+- AdminDashboard: 5-row layout.
+
+**Backfill migration:** `20260627120000_backfill_purchase_price.sql` — copies purchase_price from inventory_variants to product_variants (via SKU match on transferred products) and from product_variants to order_items. Run `supabase db push` to apply.
+
+**Bugfixes applied before + after deploy:**
+- Revenue aggregate: switched from `sum()` + `.single()` to `select('grand_total')` + JS `.reduce()` — avoids PostgREST object-vs-array ambiguity.
+- Top Customers: removed `email` column from `user:users` join (`public.users` has no email). Status filter: `.in('paid','delivered','completed')`.
+- SalesChart profit overlap: hardcoded cost/profit to 0 before deploy so profit line stays hidden.
+- Purchase_price restored in all selects post-deploy (getProfitStats, getTopProducts, getSalesData) — profit/loss now computes from real data.
+- getSalesData: replaced two-phase query (IN 5000 IDs) with single joined query via `order!inner`.
+
+**Payment & UI fixes (post-deploy):**
+- Order status "paid" → now also updates payment record to `verified` (sets verified_by + verified_at). Verify/Fail buttons visible for ALL payment methods.
+- Sidebar logo removed — header now shows logo image (or fallback Package icon + storeName). AdminSidebar no longer accepts `logoUrl`/`storeName` props.
+- Revenue filter changed from `delivered`-only to `['paid', 'delivered']` in all dashboard queries.
+- Backfill migration `20260627120000_backfill_purchase_price.sql` created — copies purchase_price from inventory_variants → product_variants → order_items for existing transferred products.
+- Build: 0 TS errors.

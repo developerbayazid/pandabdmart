@@ -747,8 +747,8 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
   - Date picker: `inline-flex items-center gap-2 text-[13px] text-text-secondary bg-surface-secondary border border-border rounded-lg px-3 py-1.5`
   - Chart container: `h-[300px] w-full`
   - Tooltip: `bg-surface border border-border rounded-lg px-3 py-2 shadow-lg`
-- **Props:** `data: { date: string; revenue: number; orders: number }[]`
-- **Behavior:** Recharts AreaChart with tabs (Monthly/Quarterly/Annually) and date range picker. Monochrome gradient fill. Stroke `#0a0a0a` at 3px. X-axis `Mon DD`. Y-axis `৳Xk`. Custom tooltip.
+- **Props:** `data: { date: string; revenue: number; orders: number; cost: number; profit: number }[]`
+- **Behavior:** Recharts AreaChart with dual area lines. Revenue area uses monochrome gradient fill, stroke `#0a0a0a` at 3px. Profit area uses dashed stroke (`stroke-dasharray="4 4"`) with lighter gradient fill, stroke `#666666` at 2px. Tabs (Monthly/Quarterly/Annually) and date range picker. X-axis `Mon DD`. Y-axis `৳Xk`. Custom tooltip showing revenue, cost, and profit.
 
 #### RecentOrdersTable
 - **File:** `components/admin/RecentOrdersTable.tsx`
@@ -796,18 +796,47 @@ _No components built yet. Add entries here as Phase 1 features are implemented._
   - Product name: `text-[14px] font-medium text-text-primary hover:text-text-secondary transition-colors truncate block`
   - Revenue: `text-[14px] font-semibold text-text-primary shrink-0`
 - **Props:** `products: TopProduct[]`
-- **Behavior:** Shows top 5 products by quantity sold. Each row shows rank number, product name, units sold, and total revenue. Links to `/admin/products`. Empty state: "No sales data yet".
+- **Behavior:** Shows top 5 products by quantity sold. Each row shows rank number, product name, units sold, total revenue, total cost (`text-[13px] text-text-secondary`), and profit (`text-[13px] font-medium text-text-primary`). Links to `/admin/products`. Empty state: "No sales data yet".
+
+#### ProfitOverview
+- **File:** `components/admin/ProfitOverview.tsx`
+- **Classes:**
+  - Card: same shell as StatCard
+  - Header: `flex items-center gap-2 mb-6` with `DollarSign` icon
+  - Source label: `text-[11px] text-text-muted ml-auto`
+  - Mini card: `bg-surface-secondary border border-border rounded-xl p-4`
+  - Mini card value: `text-[20px] font-semibold text-text-primary`
+  - Mini card label: `text-[12px] text-text-secondary mb-1`
+  - Today row: `flex items-center gap-4 mt-4 pt-4 border-t border-border`
+  - Today profit (positive): `text-[13px] font-medium text-success-foreground`
+  - Today profit (negative): `text-[13px] font-medium text-error`
+- **Props:** `stats: ProfitStats`
+- **Behavior:** Shows 4-column grid (Revenue, Cost, Profit, Margin %) aggregated from order_items with purchase_price (inventory-sourced products only). Today row appears when today's revenue > 0. Positive/negative profit indicator with TrendingUp/TrendingDown icon.
+
+#### TopCustomers
+- **File:** `components/admin/TopCustomers.tsx`
+- **Classes:**
+  - Card: same shell
+  - Header: `flex items-center gap-2 mb-6` with `Users` icon
+  - Rank badge: `w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-[13px] font-semibold text-text-secondary shrink-0`
+  - Item: `flex items-center gap-3 p-3 bg-surface-secondary rounded-xl border border-border`
+  - Customer name: `text-[14px] font-medium text-text-primary truncate`
+  - Order count: `text-[12px] text-text-secondary`
+  - Amount: `text-[14px] font-semibold text-text-primary shrink-0`
+- **Props:** `customers: TopCustomer[]`
+- **Behavior:** Shows top 8 customers by total spend. Each row shows rank number, customer name, email (below name), order count, and total spent. Empty state: "No customer data yet".
 
 #### AdminDashboard
 - **File:** `components/admin/AdminDashboard.tsx`
 - **Classes:**
   - Container: `space-y-6`
-  - Stats row: `grid grid-cols-1 md:grid-cols-3 gap-4` (Customers, Orders, Monthly Target)
-  - Monthly Sales: full-width card
-  - Chart row: full-width Statistics card with tabs
-  - Bottom row: `grid grid-cols-1 lg:grid-cols-2 gap-4` (Customers Demographic, Recent Orders)
+  - Row 1 (stats): `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4` (Revenue, Orders, Customers, Pending)
+  - Row 2 (profit): full-width ProfitOverview card
+  - Row 3 (chart + alerts): `grid grid-cols-1 lg:grid-cols-3 gap-4` — SalesChart `lg:col-span-2`, LowStockAlert sidebar
+  - Row 4 (orders + products): `grid grid-cols-1 lg:grid-cols-2 gap-4` — RecentOrdersTable, TopProducts
+  - Row 5 (customers): full-width TopCustomers card
 - **Props:** `initialData: DashboardData`
-- **Behavior:** Client component orchestrating all dashboard sections. Layout matches TailAdmin dashboard design. Supabase Realtime subscription on `orders` table (INSERT and UPDATE events) — live updates to stat counts without page refresh. Computes `monthlyRevenue` via `useMemo` from 30-day sales data.
+- **Behavior:** Client component orchestrating all dashboard sections in 5 rows. Supabase Realtime subscription on `orders` table (INSERT and UPDATE events) — live updates to stat counts without page refresh. Profit data is static (not updated via Realtime).
 
 ### Admin — Catalog Management
 

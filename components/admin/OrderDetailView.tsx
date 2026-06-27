@@ -511,7 +511,6 @@ function PaymentRecordCard({ payment, orderId, paymentMethod, editMode, onError 
     const [saving, setSaving] = useState(false);
     const [verifying, setVerifying] = useState(false);
 
-    const isMfs = paymentMethod === 'bkash' || paymentMethod === 'nagad';
     const isPending = payment.status === 'pending';
 
     async function handleSave() {
@@ -549,7 +548,7 @@ function PaymentRecordCard({ payment, orderId, paymentMethod, editMode, onError 
                             <Pencil className="w-3.5 h-3.5" />
                         </button>
                     )}
-                    {editMode && isMfs && isPending && (
+                    {editMode && isPending && (
                         <div className="flex items-center gap-1 ml-1">
                             <Button onClick={handleVerify} disabled={verifying} variant="primary" size="sm">{verifying ? '...' : 'Verify'}</Button>
                             <Button onClick={handleFail} disabled={verifying} variant="destructive" size="sm">{verifying ? '...' : 'Fail'}</Button>

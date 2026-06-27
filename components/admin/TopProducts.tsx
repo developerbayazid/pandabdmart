@@ -38,12 +38,19 @@ export function TopProducts({ products }: TopProductsProps) {
                                 >
                                     {product.product_name}
                                 </Link>
-                                <div className="text-[12px] text-text-muted">
-                                    {product.total_sold} sold
+                                <div className="flex items-center gap-3 text-[12px] text-text-muted">
+                                    <span>{product.total_sold} sold</span>
+                                    {product.total_profit > 0 && (
+                                        <span className="text-success-foreground">
+                                            +{formatCurrency(product.total_profit)} profit
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                            <div className="text-[14px] font-semibold text-text-primary shrink-0">
-                                {formatCurrency(product.total_revenue)}
+                            <div className="text-right shrink-0">
+                                <div className="text-[14px] font-semibold text-text-primary">
+                                    {formatCurrency(product.total_revenue)}
+                                </div>
                             </div>
                         </div>
                     ))}

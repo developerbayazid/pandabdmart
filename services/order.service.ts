@@ -315,6 +315,36 @@ export async function updateOrderStatus(
             return { success: true, status: result.status };
         }
 
+        // Transitioning to paid — also update the payment record to verified
+        if (newStatus === 'paid') {
+            const adminClient = createAdminClient();
+            await adminClient
+                .from('payments')
+                .update({
+                    status: 'verified',
+                    verified_by: actorId,
+                    verified_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('order_id', orderId);
+
+            await logAuditEvent({
+                actorId,
+                action: 'order.status_update',
+                entityType: 'order',
+                entityId: orderId,
+                meta: {
+                    order_id: orderId,
+                    previous_status: currentStatus,
+                    new_status: newStatus,
+                    payment_verified: true,
+                },
+            });
+
+            const result = await updateOrderStatusInDb(orderId, currentStatus, newStatus);
+            return { success: true, status: result.status };
+        }
+
         const result = await updateOrderStatusInDb(orderId, currentStatus, newStatus);
 
         await logAuditEvent({

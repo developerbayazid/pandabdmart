@@ -1,8 +1,10 @@
-import Link from 'next/link';
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
+import { Package } from 'lucide-react';
 import { getUser } from '@/lib/auth/get-user';
 import { createClient } from '@/lib/supabase/server';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { getPublicSettings } from '@/repositories/settings.repository';
 
 export default async function AdminLayout({
     children,
@@ -16,14 +18,40 @@ export default async function AdminLayout({
     }
 
     const isAdmin = user.role === 'admin';
+    let settings: { logoUrl: string | null; storeName: string } | null = null;
+    try {
+        const data = await getPublicSettings();
+        if (data) {
+            settings = { logoUrl: data.logoUrl, storeName: data.storeName };
+        }
+    } catch {
+        // settings remain null; sidebar falls back to default icon+name
+    }
 
     return (
         <div className="h-screen flex flex-col bg-background">
             {/* Top header */}
             <header className="bg-surface border-b border-border h-16 flex items-center justify-between px-6 shrink-0">
-                <Link href="/" className="text-[15px] font-semibold text-text-primary">
-                    PandaBD Mart
-                </Link>
+                <div className="flex items-center gap-3">
+                    {settings?.logoUrl ? (
+                        <Image
+                            src={settings.logoUrl}
+                            alt={settings.storeName}
+                            width={112}
+                            height={28}
+                            className="h-7 w-auto"
+                        />
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-surface-inverse flex items-center justify-center shrink-0">
+                                <Package className="w-4 h-4 text-text-inverse" />
+                            </div>
+                            <span className="text-[15px] font-semibold text-text-primary">
+                                {settings?.storeName ?? 'PandaBD'}
+                            </span>
+                        </div>
+                    )}
+                </div>
                 <div className="flex items-center gap-3">
                     <span className="bg-surface-secondary text-text-secondary text-xs font-medium px-2 py-1 rounded-full capitalize">
                         {user.role.replace('_', ' ')}

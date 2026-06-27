@@ -26,14 +26,7 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
 
     return (
         <aside className="w-[280px] bg-surface border-r border-border shrink-0 flex flex-col">
-            <Link href="/admin/dashboard" className="flex items-center gap-3 px-6 pt-5 pb-2">
-                <div className="w-9 h-9 rounded-[10px] bg-surface-inverse flex items-center justify-center shrink-0">
-                    <Package className="w-5 h-5 text-text-inverse" />
-                </div>
-                <span className="text-[19px] font-bold text-text-primary leading-7">
-                    PandaBD
-                </span>
-            </Link>
+            <div className="pt-5 pb-2" />
 
             <nav className="flex-1 px-4 py-3">
                 <NavSection label="Menu">
@@ -128,15 +121,6 @@ export function AdminSidebar({ isAdmin }: AdminSidebarProps) {
                     </NavSection>
                 )}
             </nav>
-
-            <div className="px-6 py-4 border-t border-border shrink-0">
-                <div className="text-[13px] font-semibold text-text-primary">
-                    PandaBD Mart
-                </div>
-                <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
-                    E-commerce Admin Panel
-                </div>
-            </div>
         </aside>
     );
 }
