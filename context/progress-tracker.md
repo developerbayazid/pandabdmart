@@ -123,4 +123,5 @@ Update this file after every completed feature. Any AI agent reading this should
 - Sidebar logo removed — header now shows logo image (or fallback Package icon + storeName). AdminSidebar no longer accepts `logoUrl`/`storeName` props.
 - Revenue filter changed from `delivered`-only to `['paid', 'delivered']` in all dashboard queries.
 - Backfill migration `20260627120000_backfill_purchase_price.sql` created — copies purchase_price from inventory_variants → product_variants → order_items for existing transferred products.
+- **Footer restyled:** background changed to `bg-surface-secondary` (`#F5F5F5`) to differentiate from page background (`#FAFAFA`). Top section padding set to 120px top/bottom. Text colors switched from white-on-dark to project tokens (text-primary/secondary/muted). Logo `invert` class removed. Copyright border uses `border-border`.
 - Build: 0 TS errors.

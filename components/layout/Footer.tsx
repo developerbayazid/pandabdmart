@@ -72,8 +72,8 @@ export async function Footer() {
     if (settings?.footerLinkedinUrl) socialLinks.push({ href: settings.footerLinkedinUrl, Icon: LinkedinIcon, label: 'LinkedIn' });
 
     return (
-        <footer className="bg-text-primary text-white">
-            <div className="max-w-[1440px] mx-auto px-8 lg:px-16 py-12 lg:py-16">
+        <footer className="bg-surface-secondary text-text-primary">
+            <div className="max-w-[1440px] mx-auto px-8 lg:px-16 pt-[120px] pb-[120px]">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
                     <div className="sm:col-span-2 lg:col-span-1">
                         {settings?.logoUrl ? (
@@ -82,22 +82,22 @@ export async function Footer() {
                                 alt={settings.storeName ?? 'Store'}
                                 width={100}
                                 height={28}
-                                className="h-7 w-auto mb-4 invert"
+                                className="h-7 w-auto mb-4"
                             />
                         ) : (
-                            <p className="text-[16px] font-semibold text-white mb-4">
+                            <p className="text-[16px] font-semibold text-text-primary mb-4">
                                 {settings?.storeName ?? 'Store'}
                             </p>
                         )}
                         {settings?.footerTagline && (
-                            <p className="text-[13px] text-white/70 leading-relaxed mb-6 max-w-xs">
+                            <p className="text-[13px] text-text-secondary leading-relaxed mb-6 max-w-xs">
                                 {settings.footerTagline}
                             </p>
                         )}
                         {socialLinks.length > 0 && (
                             <div className="flex items-center gap-3">
                                 {socialLinks.map((link) => (
-                                    <Link key={link.label} href={link.href} className="text-white/70 hover:text-white transition-colors" aria-label={link.label}>
+                                    <Link key={link.label} href={link.href} className="text-text-secondary hover:text-text-primary transition-colors" aria-label={link.label}>
                                         <link.Icon className="w-4 h-4" />
                                     </Link>
                                 ))}
@@ -106,11 +106,11 @@ export async function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="text-[14px] font-semibold text-white mb-4">Pages</h4>
+                        <h4 className="text-[14px] font-semibold text-text-primary mb-4">Pages</h4>
                         <ul className="space-y-2.5">
                             {footerPagesLinks.map((link) => (
                                 <li key={link.href}>
-                                    <Link href={link.href} className="text-[13px] text-white/70 hover:text-white transition-colors">
+                                    <Link href={link.href} className="text-[13px] text-text-secondary hover:text-text-primary transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -119,11 +119,11 @@ export async function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="text-[14px] font-semibold text-white mb-4">Services</h4>
+                        <h4 className="text-[14px] font-semibold text-text-primary mb-4">Services</h4>
                         <ul className="space-y-2.5">
                             {footerServicesLinks.map((link) => (
                                 <li key={link.label}>
-                                    <Link href={link.href} className="text-[13px] text-white/70 hover:text-white transition-colors">
+                                    <Link href={link.href} className="text-[13px] text-text-secondary hover:text-text-primary transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -132,20 +132,20 @@ export async function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="text-[14px] font-semibold text-white mb-4">Contacts</h4>
+                        <h4 className="text-[14px] font-semibold text-text-primary mb-4">Contacts</h4>
                         <ul className="space-y-2.5">
                             {settings?.storeAddress && (
-                                <li className="text-[13px] text-white/70 leading-relaxed">
+                                <li className="text-[13px] text-text-secondary leading-relaxed">
                                     {settings.storeAddress}
                                 </li>
                             )}
                             {settings?.storeEmail && (
-                                <li className="text-[13px] text-white/70">
+                                <li className="text-[13px] text-text-secondary">
                                     {settings.storeEmail}
                                 </li>
                             )}
                             {settings?.storePhone && (
-                                <li className="text-[13px] text-white/70">
+                                <li className="text-[13px] text-text-secondary">
                                     {settings.storePhone}
                                 </li>
                             )}
@@ -154,9 +154,9 @@ export async function Footer() {
                 </div>
             </div>
 
-            <div className="border-t border-white/10">
+            <div className="border-t border-border">
                 <div className="max-w-[1440px] mx-auto px-8 lg:px-16 py-4">
-                    <p className="text-[11px] text-white/50 text-center">
+                    <p className="text-[11px] text-text-muted text-center">
                         {settings?.footerCopyright ? `${settings.footerCopyright} ${settings.storeName ?? ''}` : 'Copyright © 2025. All Rights Reserved'}
                     </p>
                 </div>
